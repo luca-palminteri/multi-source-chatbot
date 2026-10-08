@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "teams": [
+    {
+      "id": "team-it",
+      "name": "IT Operations"
+    },
+    {
+      "id": "team-product",
+      "name": "Product Engineering"
+    },
+    {
+      "id": "team-workplace",
+      "name": "Workplace Services"
+    }
+  ],
+  "employees": [
+    {
+      "id": "emp-001",
+      "name": "Alex Rivera",
+      "email": "alex.rivera@northstar.example",
+      "team_id": "team-product"
+    },
+    {
+      "id": "emp-002",
+      "name": "Sam Chen",
+      "email": "sam.chen@northstar.example",
+      "team_id": "team-product"
+    },
+    {
+      "id": "emp-003",
+      "name": "Jordan Patel",
+      "email": "jordan.patel@northstar.example",
+      "team_id": "team-it"
+    },
+    {
+      "id": "emp-004",
+      "name": "Taylor Morgan",
+      "email": "taylor.morgan@northstar.example",
+      "team_id": "team-it"
+    },
+    {
+      "id": "emp-005",
+      "name": "Casey Silva",
+      "email": "casey.silva@northstar.example",
+      "team_id": "team-workplace"
+    },
+    {
+      "id": "emp-006",
+      "name": "Riley Brooks",
+      "email": "riley.brooks@northstar.example",
+      "team_id": "team-workplace"
+    }
+  ],
+  "services": [
+    {
+      "id": "svc-vpn",
+      "name": "VPN access",
+      "owner_team_id": "team-it"
+    },
+    {
+      "id": "svc-software",
+      "name": "Software installation",
+      "owner_team_id": "team-product"
+    },
+    {
+      "id": "svc-equipment",
+      "name": "Equipment support",
+      "owner_team_id": "team-workplace"
+    },
+    {
+      "id": "svc-account",
+      "name": "Account access",
+      "owner_team_id": "team-it"
+    }
+  ],
+  "policies": [
+    {
+      "id": "pol-vpn",
+      "title": "VPN Access Policy",
+      "service_ids": [
+        "svc-vpn"
+      ]
+    },
+    {
+      "id": "pol-software",
+      "title": "Software Installation Policy",
+      "service_ids": [
+        "svc-software"
+      ]
+    },
+    {
+      "id": "pol-equipment",
+      "title": "Equipment Support Policy",
+      "service_ids": [
+        "svc-equipment"
+      ]
+    },
+    {
+      "id": "pol-account",
+      "title": "Account Access Policy",
+      "service_ids": [
+        "svc-account"
+      ]
+    },
+    {
+      "id": "pol-requests",
+      "title": "Service Request Lifecycle",
+      "service_ids": [
+        "svc-vpn",
+        "svc-software",
+        "svc-equipment",
+        "svc-account"
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-vpn",
+      "title": "VPN Access Policy",
+      "path": "data/documents/vpn.md",
+      "policy_id": "pol-vpn",
+      "version": 1,
+      "effective_date": "2026-10-01"
+    },
+    {
+      "id": "doc-software",
+      "title": "Software Installation Policy",
+      "path": "data/documents/software.md",
+      "policy_id": "pol-software",
+      "version": 1,
+      "effective_date": "2026-10-01"
+    },
+    {
+      "id": "doc-equipment",
+      "title": "Equipment Support Policy",
+      "path": "data/documents/equipment.md",
+      "policy_id": "pol-equipment",
+      "version": 1,
+      "effective_date": "2026-10-01"
+    },
+    {
+      "id": "doc-account",
+      "title": "Account Access Policy",
+      "path": "data/documents/account.md",
+      "policy_id": "pol-account",
+      "version": 1,
+      "effective_date": "2026-10-01"
+    },
+    {
+      "id": "doc-requests",
+      "title": "Service Request Lifecycle",
+      "path": "data/documents/requests.md",
+      "policy_id": "pol-requests",
+      "version": 1,
+      "effective_date": "2026-10-01"
+    }
+  ],
+  "service_requests": [
+    {
+      "id": "req-001",
+      "service_id": "svc-vpn",
+      "submitter_id": "emp-001",
+      "assigned_team_id": "team-it",
+      "summary": "VPN for remote work",
+      "description": "Need VPN for remote work starting October 12.",
+      "status": "open",
+      "created_at": "2026-10-01T09:00:00Z",
+      "updated_at": "2026-10-02T10:00:00Z",
+      "version": 1
+    },
+    {
+      "id": "req-002",
+      "service_id": "svc-software",
+      "submitter_id": "emp-001",
+      "assigned_team_id": "team-product",
+      "summary": "Install approved editor",
+      "description": "Need a licensed editor for development.",
+      "status": "in_progress",
+      "created_at": "2026-10-01T09:00:00Z",
+      "updated_at": "2026-10-02T10:00:00Z",
+      "version": 1
+    },
+    {
+      "id": "req-003",
+      "service_id": "svc-equipment",
+      "submitter_id": "emp-003",
+      "assigned_team_id": "team-workplace",
+      "summary": "Laptop battery issue",
+      "description": "Asset DEMO-003 battery stops charging.",
+      "status": "open",
+      "created_at": "2026-10-01T09:00:00Z",
+      "updated_at": "2026-10-02T10:00:00Z",
+      "version": 1
+    },
+    {
+      "id": "req-004",
+      "service_id": "svc-account",
+      "submitter_id": "emp-004",
+      "assigned_team_id": "team-it",
+      "summary": "Analytics access",
+      "description": "Need viewer role in the analytics demo system.",
+      "status": "cancelled",
+      "created_at": "2026-10-01T09:00:00Z",
+      "updated_at": "2026-10-02T10:00:00Z",
+      "version": 1
+    },
+    {
+      "id": "req-005",
+      "service_id": "svc-equipment",
+      "submitter_id": "emp-001",
+      "assigned_team_id": "team-workplace",
+      "summary": "Monitor flicker",
+      "description": "Asset DEMO-001 external monitor flickers.",
+      "status": "resolved",
+      "created_at": "2026-10-01T09:00:00Z",
+      "updated_at": "2026-10-02T10:00:00Z",
+      "version": 1
+    },
+    {
+      "id": "req-006",
+      "service_id": "svc-software",
+      "submitter_id": "emp-006",
+      "assigned_team_id": "team-product",
+      "summary": "Install spreadsheet application",
+      "description": "Need licensed spreadsheet software for inventory.",
+      "status": "open",
+      "created_at": "2026-10-01T09:00:00Z",
+      "updated_at": "2026-10-02T10:00:00Z",
+      "version": 1
+    }
+  ]
+}
