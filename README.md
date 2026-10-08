@@ -13,6 +13,7 @@ one complete run using the stronger final-answer and action-result assertions.
 Step 8 adds the pinned upstream Agent Chat UI and a local LangGraph server, with
 shared orchestration, visible tool activity, server-owned conversation history,
 and safeguards against replaying uncertain actions. See [browser setup](docs/web-chat.md).
+To run the backend and UI together in one container, see [Docker setup](docs/docker.md).
 
 - [Scope and architecture](docs/architecture.md)
 - [Data and action contracts](docs/contracts.md)
