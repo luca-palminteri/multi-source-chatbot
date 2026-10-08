@@ -1,10 +1,12 @@
 """Run real models, retrieval, and subprocess MCP against disposable demo state."""
 import argparse
 import asyncio
+import hashlib
 from dataclasses import replace
 from contextlib import closing
 import json
 import os
+import re
 from pathlib import Path
 import sqlite3
 import sys
@@ -14,6 +16,27 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from assistant.evaluation import check_turn
+
+
+# Expected content for fixed synthetic evaluation cases, never runtime routing.
+VPN_FACTS = (r"manager.{0,40}approv", r"company[ -]managed|managed.{0,20}device",
+             r"MFA|multi[ -]factor")
+ANSWER_CHECKS = {
+    "policy": (VPN_FACTS, ("D",)),
+    "policy_paraphrase": (VPN_FACTS, ("D",)),
+    "graph": ((r"software installation",), ("G",)),
+    "graph_paraphrase": ((r"software installation",), ("G",)),
+    "combined": ((*VPN_FACTS, r"IT Operations|team-it"), ("D", "G")),
+    "combined_paraphrase": ((*VPN_FACTS, r"IT Operations|team-it"), ("D", "G")),
+    "mixed": ((*VPN_FACTS, r"IT Operations|team-it"), ("D", "G")),
+    "missing_information": ((r"lunar", r"not.{0,50}(establish|available|find|found|contain|cover)|"
+                              r"no.{0,40}(evidence|information|policy|mention)|"
+                              r"(cannot|can't|couldn't|unable).{0,40}(find|establish|confirm)|"
+                              r"(missing|unavailable|unknown)"), ()),
+    "missing_arguments": ((r"which|what|specify|provide", r"service",), ()),
+    "unknown_id": ((r"not.{0,20}(find|found|exist)|cannot.{0,20}find|no.{0,20}request|unknown",), ()),
+    "invalid_transition": ((r"resolved|terminal", r"cannot|can't|not allowed|unable",), ()),
+}
 
 
 def snapshot(database):
@@ -38,7 +61,10 @@ async def evaluate(report, output=None, actions_only=False):
 
     settings = Settings.load(ROOT)
     report["configuration"] = {"chat_model": settings.chat_model,
-                               "embedding_model": settings.embedding_model}
+                               "embedding_model": settings.embedding_model,
+                               "python_version": sys.version.split()[0],
+                               "dependency_lock_sha256": hashlib.sha256(
+                                   (ROOT / "uv.lock").read_bytes()).hexdigest()}
     with tempfile.TemporaryDirectory(prefix="assistant-eval-") as directory:
         settings = replace(settings, sqlite_path=Path(directory) / "demo.sqlite3",
                            vector_index_path=Path(directory) / "index",
@@ -84,12 +110,24 @@ async def evaluate(report, output=None, actions_only=False):
                     started = time.monotonic()
                     result = await current.ask(prompt)
                     after = snapshot(settings.sqlite_path)
+                    patterns, citation_types = ANSWER_CHECKS.get(label, ((), ()))
+                    if expected_record:
+                        patterns = (*patterns, re.escape(expected_record["id"]),
+                                    re.escape(expected_record["status"]),
+                                    rf"version\D{{0,20}}{expected_record['version']}\b")
+                        citation_types = ("G",)
                     failures = check_turn(result, lookups, before, after, action=action,
                                           combined=combined, expected_record=expected_record,
-                                          require_information=require_information)
+                                          require_information=require_information,
+                                          answer_patterns=patterns, citation_types=citation_types)
                     item = {"case": label, "prompt": prompt, "passed": not failures,
                             "elapsed_seconds": round(time.monotonic() - started, 1),
                             "failures": failures, "response": result, "lookups": list(lookups),
+                            "expectations": {"action": action, "combined": combined,
+                                             "require_information": require_information,
+                                             "answer_patterns": patterns,
+                                             "citation_types": citation_types,
+                                             "expected_record": expected_record},
                             "database_before": before, "database_after": after}
                     report["cases"].append(item)
                     print(f"{label}: {'PASS' if not failures else 'FAIL'}", flush=True)

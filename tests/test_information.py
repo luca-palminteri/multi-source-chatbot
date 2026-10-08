@@ -98,7 +98,7 @@ class InformationTests(Fixture):
             RetrievalPlan.model_validate({"document_query": "VPN", "graph_queries": [query()], "sql": "DELETE"})
 
     def test_unknown_citation_and_empty_answer_rejected(self):
-        for answer in ("Fact [D99]", ""):
+        for answer in ("Fact [D99]", "Fact [D1, D99]", ""):
             with self.assertRaises(ValueError):
                 self.pipeline(answer=answer).invoke("VPN?")
 

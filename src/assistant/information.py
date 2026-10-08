@@ -1,7 +1,6 @@
 """Centralized, read-only information lookup. No action tools or MCP clients."""
 from dataclasses import asdict
 import json
-import re
 from typing import Literal, TypedDict
 
 from langchain_core.tools import StructuredTool
@@ -11,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .debug import traced
 from .messages import message_text
 from .contracts import DocumentEvidence, GraphResult
+from .citations import citation_ids
 
 
 class StrictModel(BaseModel):
@@ -135,7 +135,7 @@ class InformationPipeline:
         answer = message_text(response)
         if not answer.strip():
             raise ValueError("Synthesis returned no text answer")
-        citations = set(re.findall(r"\[([DG]\d+)\]", answer))
+        citations = citation_ids(answer)
         if citations - state["sources"].keys():
             raise ValueError("Synthesis cited an unavailable source")
         return {"answer": answer,
