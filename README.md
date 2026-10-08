@@ -64,6 +64,12 @@ The unit suite uses deterministic models; `scripts/evaluate_demo.py` exercises r
 model calls and isolated MCP writes. A reproducible dependency lock is still pending.
 The verification report is saved in `runtime/evaluation.json`.
 
+GitHub Actions runs demo data validation, the unit suite, and subprocess MCP checks
+on every push and pull request, and can also be started manually from the Actions
+tab. CI covers Python 3.10 and 3.12 on Linux and Python 3.12 on Windows, installs
+the `runtime` extra, and requires no API credentials. Live Gemini evaluation stays
+an explicit local command.
+
 After installing/configuring the runtime, run `python scripts/check_mcp.py` for
 real subprocess protocol checks and `python scripts/evaluate_demo.py` for the
 live model/retrieval/action evaluation. The latter creates disposable demo state
