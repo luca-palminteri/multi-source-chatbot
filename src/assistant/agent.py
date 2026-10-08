@@ -108,8 +108,9 @@ class AgentSession:
             return result
 
 
-def build_agent(model, information_tool, action_tools, employee_id):
-    from langgraph.checkpoint.memory import MemorySaver
+def build_graph(model, information_tool, action_tools, employee_id, *,
+                checkpointer=None, pre_model_hook=None, post_model_hook=None):
+    """Build the same orchestration for CLI and server-owned persistence."""
     from langgraph.prebuilt import create_react_agent, ToolNode
 
     tools = [information_tool, *action_tools]
@@ -118,18 +119,25 @@ def build_agent(model, information_tool, action_tools, employee_id):
         raise ValueError("Discovered tool names must be unique")
     workflow = create_react_agent(
         model, ToolNode(tools, handle_tool_errors=False),
-        prompt=INSTRUCTIONS.format(employee_id=employee_id), checkpointer=MemorySaver())
+        prompt=INSTRUCTIONS.format(employee_id=employee_id), checkpointer=checkpointer,
+        pre_model_hook=pre_model_hook, post_model_hook=post_model_hook)
+    return workflow
+
+
+def build_agent(model, information_tool, action_tools, employee_id):
+    from langgraph.checkpoint.memory import MemorySaver
+    workflow = build_graph(model, information_tool, action_tools, employee_id,
+                           checkpointer=MemorySaver())
+    names = [tool.name for tool in [information_tool, *action_tools]]
     return AgentSession(workflow, names)
 
 
 @asynccontextmanager
-async def connect_agent(settings, *, model=None, pipeline=None):
+async def connect_action_tools(settings):
     """Discover schemas anew on each connection; never import action storage."""
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
     from langchain_mcp_adapters.tools import load_mcp_tools
-    from .information import create_information_pipeline
-    from .providers import chat_provider
 
     if settings.mcp_transport != "stdio":
         raise ValueError("Only MCP_TRANSPORT=stdio is supported")
@@ -148,6 +156,14 @@ async def connect_agent(settings, *, model=None, pipeline=None):
             logger.debug("MCP tool discovery completed; tools=%s", [tool.name for tool in tools])
             if not tools:
                 raise ValueError("MCP server advertised no action tools")
-            yield build_agent(model or chat_provider(settings),
-                              (pipeline or create_information_pipeline(settings)).as_tool(),
-                              tools, settings.demo_employee_id)
+            yield tools
+
+
+@asynccontextmanager
+async def connect_agent(settings, *, model=None, pipeline=None):
+    from .information import create_information_pipeline
+    from .providers import chat_provider
+    async with connect_action_tools(settings) as tools:
+        yield build_agent(model or chat_provider(settings),
+                          (pipeline or create_information_pipeline(settings)).as_tool(),
+                          tools, settings.demo_employee_id)

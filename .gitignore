@@ -14,3 +14,8 @@ dist/
 *.egg-info/
 runtime/
 .venv-win/
+.venv-web/
+.langgraph_api/
+node_modules/
+.next/
+!.env.local.example

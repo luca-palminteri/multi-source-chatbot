@@ -1,0 +1,6 @@
+{
+  "dependencies": ["."],
+  "graphs": {"assistant": "assistant.web:graph"},
+  "http": {"app": "assistant.web:app"},
+  "env": ".env"
+}

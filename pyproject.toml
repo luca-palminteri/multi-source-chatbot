@@ -12,6 +12,7 @@ dependencies = ["python-dotenv>=1,<2", "numpy>=1.26,<3", "langchain-google-genai
 # Additional agent orchestration dependencies.
 [project.optional-dependencies]
 runtime = ["langchain-mcp-adapters>=0.1,<0.3"]
+web = ["langchain-mcp-adapters>=0.1,<0.3", "langgraph-cli[inmem]==0.4.33; python_version >= '3.12'", "langgraph-api==0.15.3; python_version >= '3.12'", "starlette>=0.40; python_version >= '3.12'", "colorama>=0.4,<0.5; python_version >= '3.12' and sys_platform == 'win32'"]
 
 [project.scripts]
 assistant = "assistant.cli:main"
