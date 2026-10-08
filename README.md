@@ -1,0 +1,71 @@
+# Multi-source internal assistant
+
+Steps 1 through 6 have source implementations: scope, synthetic data, configuration,
+SQLite setup, document ingestion/search, typed graph traversal, and a centralized
+LangGraph informational pipeline with grounded synthesis and trace output, and a
+separate MCP action server, and model-driven orchestration with MCP discovery and
+conversation memory, and a passive interactive terminal chat. Step 7 adds an
+evidence-based live evaluation runner and reproducible demo instructions.
+The Windows Python 3.12 environment (`.venv-win`) has been validated with
+49 automated tests, subprocess MCP checks, and 17 passing live Gemini scenarios.
+
+- [Scope and architecture](docs/architecture.md)
+- [Data and action contracts](docs/contracts.md)
+- [Representative requests](docs/examples.md)
+- [Implementation plan](plans/README.md)
+- [Verification, requirement evidence, reset workflow, and presenter demo](docs/demo.md)
+
+Validate the dataset without credentials or dependencies (Python 3.10+):
+
+```powershell
+python scripts/validate_demo.py
+```
+
+Install the retrieval and informational pipeline dependencies (Python 3.10+):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python -m pip install -e .
+Copy-Item .env.example .env
+```
+
+Set your own `GOOGLE_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey) in `.env` for chat, ingestion, and document search.
+After switching from OpenAI, reinstall dependencies and rerun `python -m assistant.cli ingest` to rebuild the embedding index.
+Seeding and graph retrieval do not require credentials. On MSYS Python, the
+virtual environment executable is `.venv\bin\python.exe`; standard Windows
+Python uses `.venv\Scripts\python.exe` as shown here.
+
+```powershell
+.venv\Scripts\python -m assistant.cli seed
+.venv\Scripts\python -m assistant.cli graph emp-001 --step MEMBER_OF:out --step OWNS:out
+.venv\Scripts\python -m assistant.cli graph svc-vpn --step OWNS:in
+.venv\Scripts\python -m assistant.cli ingest
+.venv\Scripts\python -m assistant.cli search "What does VPN access require?"
+.venv\Scripts\python -m assistant.cli ask "Which team handles VPN access, and what does the access policy require?" --trace
+.venv\Scripts\python -m unittest discover -s tests -v
+```
+
+The installed `assistant` command exposes the same commands. Run from the project
+root or pass `--root <project-directory>` before the subcommand. The `runtime`
+dependency extra adds the MCP adapter for agent orchestration.
+
+- [Retrieval setup, contracts, and validation status](docs/retrieval.md)
+- [Informational pipeline, tool contract, and validation limits](docs/information.md)
+- [Action MCP startup, retry behavior, and client smoke check](docs/actions.md)
+- [Agent orchestration, invocation, and validation status](docs/agent.md)
+- [Terminal chat and the complete startup sequence](docs/chat.md)
+
+After installing `pip install -e ".[runtime]"`, configuring `.env`, seeding, and
+ingesting, start `python -m assistant.cli chat`. It launches the MCP server
+automatically. Use `/new` for a fresh conversation and `/exit` to quit.
+
+Live Gemini calls and MCP actions have been verified against synthetic demo data.
+The unit suite uses deterministic models; `scripts/evaluate_demo.py` exercises real
+model calls and isolated MCP writes. A reproducible dependency lock is still pending.
+The verification report is saved in `runtime/evaluation.json`.
+
+After installing/configuring the runtime, run `python scripts/check_mcp.py` for
+real subprocess protocol checks and `python scripts/evaluate_demo.py` for the
+live model/retrieval/action evaluation. The latter creates disposable demo state
+and captures evidence in `runtime/evaluation.json`; it does not reset your chat
+database. See [the demo guide](docs/demo.md) for expected behavior and limits.
