@@ -54,3 +54,35 @@ jobs:
 
       - name: Check MCP subprocess integration
         run: uv run --locked --extra runtime python scripts/check_mcp.py
+
+  web:
+    name: Browser and Agent Server / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install locked server
+        run: |
+          python -m pip install uv==0.12.23
+          uv sync --locked --extra web --python 3.12
+      - name: Run web boundary and lifecycle tests
+        run: uv run --locked --extra web python -m unittest discover -s tests -p test_web.py -v
+      - name: Verify disposable Agent Server
+        run: uv run --locked --extra web python scripts/check_web.py
+      - name: Install pinned UI
+        working-directory: ui/agent-chat-ui
+        run: npm exec --yes --package=pnpm@10.5.1 -- pnpm install --frozen-lockfile
+      - name: Build UI
+        working-directory: ui/agent-chat-ui
+        run: npm exec --yes --package=pnpm@10.5.1 -- pnpm build
