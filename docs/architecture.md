@@ -79,3 +79,14 @@ VPN's owning team is present only in structured relationships; approval and MFA
 requirements are in policy documents. Answering who handles VPN and what is
 required therefore needs both sources. A multi-hop traversal from Alex to Product
 Engineering to that team's owned software service demonstrates explicit graph use.
+
+## Browser entrypoint (step 8)
+
+The vendored upstream Agent Chat UI connects to the local LangGraph Agent Server
+on port 2024. `assistant.web:graph` is a context-managed factory using the shared
+`build_graph` orchestration and `connect_action_tools` discovery lifecycle. The
+server supplies checkpoint storage and thread IDs; the CLI retains its MemorySaver.
+The UI renders native messages and tool results and submits new human messages.
+The HTTP boundary and persistent execution ledger enforce validation, concurrency,
+failure and replay policy independently of model-selected intent routing.
+See [browser setup and limits](web-chat.md).

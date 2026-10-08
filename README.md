@@ -10,6 +10,10 @@ A clean Windows Python 3.12 environment installed from `uv.lock` passes
 53 automated tests, subprocess MCP checks, and all 17 live Gemini scenarios in
 one complete run using the stronger final-answer and action-result assertions.
 
+Step 8 adds the pinned upstream Agent Chat UI and a local LangGraph server, with
+shared orchestration, visible tool activity, server-owned conversation history,
+and safeguards against replaying uncertain actions. See [browser setup](docs/web-chat.md).
+
 - [Scope and architecture](docs/architecture.md)
 - [Data and action contracts](docs/contracts.md)
 - [Representative requests](docs/examples.md)
@@ -57,6 +61,7 @@ dependency extra adds the MCP adapter for agent orchestration.
 - [Action MCP startup, retry behavior, and client smoke check](docs/actions.md)
 - [Agent orchestration, invocation, and validation status](docs/agent.md)
 - [Terminal chat and the complete startup sequence](docs/chat.md)
+- [Browser chat, Windows setup, and execution safeguards](docs/web-chat.md)
 
 After the locked installation, configuring `.env`, seeding, and
 ingesting, start `uv run --locked --extra runtime python -m assistant.cli chat`. It launches the MCP server

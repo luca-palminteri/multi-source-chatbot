@@ -87,7 +87,17 @@ selected; the protocol smoke check additionally exercises actual server failures
 | Strict action separation and correct schemas | Read-only snapshot comparisons; `check_mcp.py` strict schema/error checks |
 | Tool extensibility without routing changes | Discovered `assign_service_request`, selected extension call; server-only registry definition |
 | Passive ready-made UI | Terminal transcript and `test_chat.py` forwarding/context/failure checks |
+| Browser UI and native tool activity | Pinned upstream UI build; `scripts/check_web_browser.cjs`; screenshot/streams under `runtime/web-verification/` |
+| Server history, isolation, and safe execution | `test_web.py` and `scripts/check_web.py`; deterministic server report in `runtime/web-smoke/report.json` |
 | Modular architecture | [Architecture diagram](architecture.md), separate retrieval/information/agent/actions/chat modules |
+
+Step 8 local verification also covers the nine browser turns (seven presenter
+turns followed by missing details and an invalid ID), with refresh/history and
+an empty new conversation. The disposable database check confirms one created
+request, successful create/update/assignment MCP payloads, current-turn versions,
+and the final `in_progress` state at version 2. Reports, streamed events, and a
+browser screenshot are under `runtime/web-verification/`. The default database's
+six original records were preserved. See [web setup and safeguards](web-chat.md).
 
 ## Limitations and verification status
 
