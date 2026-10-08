@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-source-chatbot"
+version = "0.1.0"
+description = "Internal knowledge assistant with separate MCP actions"
+requires-python = ">=3.10"
+dependencies = ["python-dotenv>=1,<2", "numpy>=1.26,<3", "langchain-google-genai>=4,<5", "langgraph>=0.2,<2", "pydantic>=2,<3", "mcp>=1.28,<2"]
+
+# Additional agent orchestration dependencies.
+[project.optional-dependencies]
+runtime = ["langchain-mcp-adapters>=0.1,<0.3"]
+
+[project.scripts]
+assistant = "assistant.cli:main"
+assistant-actions = "assistant.actions.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
