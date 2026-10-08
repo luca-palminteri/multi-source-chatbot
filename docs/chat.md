@@ -3,8 +3,8 @@
 Run these commands from the project root with Python 3.10 or newer:
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\python -m pip install -e ".[runtime]"
+python -m pip install uv==0.12.23
+uv sync --locked --extra runtime --python 3.12
 Copy-Item .env.example .env
 ```
 

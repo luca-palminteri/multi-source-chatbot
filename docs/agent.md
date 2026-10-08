@@ -34,9 +34,10 @@ owning team for active requests belonging to the configured employee. Its schema
 is discovered without selection-code changes. The MCP smoke script reconnects,
 loads it through the adapter, invokes it, and checks rejection of an unrelated team.
 
-Validation: dependency installation is blocked by network socket restrictions in
-this environment. Dependency-free storage/session tests can run; framework and MCP
-checks require installation. Still verify live informational/action paraphrases,
-mixed requests, ambiguity without mutation, and new-tool discovery before declaring
-step 5 complete. The session tests cover trace preservation, failure/timeout bounds,
-and stable conversation identifiers; they do not prove live model selection.
+Validation: all 53 automated tests and subprocess MCP checks passed in a clean
+Windows Python 3.12 environment installed from `uv.lock` on 2026-10-08.
+All 17 live scenarios passed in one complete run with the stronger evaluation
+assertions, including paraphrases, mixed requests, clarification, and discovered
+assignment. Evidence is in `runtime/evaluation-locked-final.json`. Session tests cover trace preservation,
+failure/timeout bounds, and stable conversation identifiers; they do not prove
+live model selection. See [the demo guide](demo.md) for evidence and limits.

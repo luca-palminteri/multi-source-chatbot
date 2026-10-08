@@ -35,12 +35,13 @@ Centralized informational graph, informational tool contract, answer grounding i
 
 Source implemented in `src/assistant/information.py`, with the `ask` CLI command,
 `lookup_information` tool, grounding instructions, and per-call trace output.
-See [pipeline documentation](../../docs/information.md). Compilation and the nine
-available seed/graph/chunk checks pass. Eight pipeline tests and five vector
-tests require unavailable dependencies and are skipped in this environment;
-network restrictions blocked installation. Live combined-answer and missing-fact
-acceptance checks remain pending, so completion is not yet verified.
+See [pipeline documentation](../../docs/information.md). Pipeline and retrieval
+tests pass as part of the 53-test suite in a clean locked Windows Python 3.12
+environment. Historical live combined-answer and missing-information cases are
+recorded in `runtime/evaluation.json`. A new complete live run with the stronger
+final-answer checks passed all 17 scenarios in `runtime/evaluation-locked-final.json`.
+See [verification status](../../docs/demo.md).
 
 ## Next step
 
-Connect this tool to the agent in [step 5](../step-05/plan-step.md), once step 4 is ready.
+Agent integration is implemented in [step 5](../step-05/plan-step.md).

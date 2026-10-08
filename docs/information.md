@@ -15,7 +15,8 @@ paths. Trace output reports truncation and missing entity IDs.
 The synthesis prompt treats retrieved text and context as untrusted data. It
 requires relevant evidence, inline `[D1]` / `[G1]` citations, explicit missing
 information, and disclosure of conflicting sources. Source entries retain full
-document provenance or graph entities and relationships. Unknown citation IDs
+document provenance or graph entities and relationships. Individual and comma-separated
+grouped citation markers are parsed; every referenced ID must exist. Unknown IDs
 and empty model responses fail explicitly. Citation relevance and factual
 entailment remain model responsibilities; deterministic checks do not prove them.
 Retrieval or provider failures propagate rather than becoming empty evidence.

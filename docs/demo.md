@@ -7,8 +7,8 @@ Run commands from the project root using Python 3.10+. On standard Windows use
 ## Clean setup
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\python -m pip install -e ".[runtime]"
+python -m pip install uv==0.12.23
+uv sync --locked --extra runtime --python 3.12
 Copy-Item .env.example .env
 ```
 
@@ -35,9 +35,13 @@ report. An incomplete report never counts as successful live validation.
 arguments, returned results, full informational sources and pipeline traces, and
 database snapshots before/after each turn. This is synthetic demo evidence, but
 may contain sensitive text if adapted to real data; keep it in ignored `runtime/`.
-Review factual relevance and missing-information wording manually: citations alone
-do not prove that each claim is supported. The automated runner checks both source
-types for combined questions and exact graph attributes for updated records.
+The automated runner checks successful MCP payloads matched to tool-call IDs,
+final-answer citation availability, both source types for combined questions,
+expected policy/ownership facts, missing-information and clarification wording,
+and current request IDs/status/versions in both graph evidence and final answers.
+Expected wording patterns apply only to the evaluation's fixed synthetic cases;
+they do not route application requests. Review factual relevance manually: these
+checks do not prove claim entailment or resolve citation IDs reused across lookups.
 
 `seed` preserves existing records. For a fresh interactive demo, choose new paths
 in `.env`, such as `SQLITE_PATH=runtime/demo-02.sqlite3` and
@@ -92,9 +96,17 @@ authentication, authorization layer, durable chat history, or provisioning actio
 SQLite-derived typed relationships satisfy the small graph use case; a dedicated
 graph database and exposing this assistant as an external MCP server are optional.
 Versions guard concurrent mutations; do not blindly retry uncertain action results.
-Dependency version ranges are configured, but no verified dependency lock exists.
+`uv.lock` resolves dependencies for Python 3.10+ and supported platforms. A clean
+Windows Python 3.12 install from the lock passed all 53 automated tests and the
+subprocess MCP checks on 2026-10-08. CI uses the same lock on its existing matrix;
+Linux and Python 3.10 execution remain CI checks, not local verification claims.
 
-Verified on 2026-10-08 using standard Windows Python 3.12 in `.venv-win`:
+All 17 live Gemini scenarios passed in one complete run from the clean locked
+environment with the stronger assertions and final-answer citation instructions.
+`runtime/evaluation-locked-final.json` contains the current verification evidence;
+`runtime/evaluation.json` preserves the earlier report assembled across runs.
+
+Earlier verification on 2026-10-08 used standard Windows Python 3.12 in `.venv-win`:
 49 automated tests passed without skips, and the real subprocess MCP smoke check
 passed discovery, validation, mutations, restart persistence, and graph visibility.
 Seventeen live Gemini scenarios passed across the recorded verification runs,

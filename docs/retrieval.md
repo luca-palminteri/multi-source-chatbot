@@ -57,7 +57,7 @@ type and name filters for entity resolution; it does not classify chatbot intent
 Every graph call opens a read-only, query-only SQLite connection and reads the
 entities and relationship rows in one transaction. It builds adjacency in memory,
 then traverses it. A later call sees committed request creations and updates from
-the future MCP server; no request state is embedded or cached across graph calls.
+the MCP server; no request state is embedded or cached across graph calls.
 Document retrieval and graph retrieval never write application records.
 
 ## Validation status
@@ -66,4 +66,5 @@ On 2026-10-08, all 49 automated checks passed in the Windows Python 3.12
 `.venv-win` environment, including vector-index checks for ingestion, provenance,
 model mismatch, failed-ingestion preservation, and mutation-free search. Live
 Google query embeddings and document/graph retrieval passed the recorded demo
-scenarios in `runtime/evaluation.json`. A resolved dependency lock is still pending.
+scenarios in `runtime/evaluation.json`. A subsequent clean install from `uv.lock`
+passed all 53 automated tests and MCP subprocess checks on Windows Python 3.12.

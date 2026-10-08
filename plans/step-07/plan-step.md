@@ -4,9 +4,13 @@
 
 Evaluation runner, evidence assertions/tests, requirement mapping, and presenter
 instructions are implemented. See [the demo guide](../../docs/demo.md).
-Local validation: 26 tests passed, 13 dependency-related skips; seed validation
-passed. Live MCP/model checks and clean setup validation remain pending because
-dependency installation is blocked by network access. Step 7 is not yet complete.
+Local validation on 2026-10-08: a clean Windows Python 3.12 install from `uv.lock`
+passed 53 tests without skips, dataset validation, and real subprocess MCP checks.
+Seventeen historical live Gemini cases are recorded across earlier runs. New
+checks now require successful MCP payloads, final-answer citations, expected
+facts, and current record details. A single complete live run using these stronger
+assertions passed all 17 cases in `runtime/evaluation-locked-final.json`. Local
+verification is complete; Linux/Python 3.10 coverage uses the CI matrix.
 
 ## Outcome
 

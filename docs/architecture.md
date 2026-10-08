@@ -59,7 +59,7 @@ runtime writer. After a committed action, a fresh graph read sees the new reques
 state; requests are never embedded into the document index. Seeding is an explicit
 setup command, not an exposed agent tool.
 
-## Proposed application layout
+## Application layout
 
 | Path | Responsibility / implementation step |
 | --- | --- |
@@ -68,10 +68,10 @@ setup command, not an exposed agent tool.
 | `scripts/validate_demo.py` | Step 1 source validation |
 | `src/assistant/config.py`, `storage.py`, `contracts.py` | Step 2 configuration, SQLite, shared types |
 | `src/assistant/retrieval/` | Step 2 ingestion, document search, typed graph traversal |
-| `src/assistant/information/` | Step 3 centralized evidence/synthesis graph |
-| `src/assistant/mcp_server/` | Step 4 independent server and transactional actions |
-| `src/assistant/agent/` | Step 5 tool discovery and autonomous orchestration |
-| `src/assistant/ui/` | Step 6 passive terminal |
+| `src/assistant/information.py` | Step 3 centralized evidence/synthesis graph |
+| `src/assistant/actions/` | Step 4 independent MCP server and transactional actions |
+| `src/assistant/agent.py` | Step 5 tool discovery and autonomous orchestration |
+| `src/assistant/chat.py` | Step 6 passive terminal |
 | `tests/` | Contract, retrieval, MCP, orchestration checks as implemented |
 | `runtime/` | Ignored generated SQLite/vector artifacts |
 

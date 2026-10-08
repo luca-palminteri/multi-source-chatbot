@@ -4,9 +4,9 @@
 
 Server, typed schemas, transactional mutations, and real-client smoke check are
 implemented. See [startup and validation](../../docs/actions.md). Storage tests
-pass locally; MCP protocol verification remains pending because network
-restrictions prevented installing the SDK. Completion criteria are not yet fully
-verified. Agent integration belongs to step 5.
+pass locally. Real subprocess MCP checks pass discovery, validation, mutations,
+restart persistence, and graph visibility in the clean locked Windows Python 3.12
+environment. Agent integration is implemented in step 5.
 
 ## Outcome
 

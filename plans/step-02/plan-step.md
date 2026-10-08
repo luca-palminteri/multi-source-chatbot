@@ -35,9 +35,10 @@ Ingestion command, reproducible seed command, document retriever, graph retrieve
 ## Implementation status
 
 Source implementation is available in `src/assistant/` with setup/retrieval CLI,
-evidence contracts, and tests. Nine dependency-free checks passed; five vector
-checks await dependency installation. Network restrictions prevented dependency
-resolution, so the reproducible lock and live embedding validation are pending.
+evidence contracts, and tests. Retrieval checks pass as part of the 53-test suite
+installed from `uv.lock` in a clean Windows Python 3.12 environment. Historical
+live runs verified Google embeddings and document/graph retrieval. A new complete
+run passed all 17 live scenarios with stronger assertions using locked dependencies.
 See [retrieval setup and validation](../../docs/retrieval.md).
 
 ## Next steps

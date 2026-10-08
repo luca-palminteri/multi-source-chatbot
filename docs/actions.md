@@ -2,16 +2,18 @@
 
 The standalone server uses stdio and the official MCP Python SDK's supported
 1.x API (`mcp>=1.28,<2`). See the [SDK documentation](https://py.sdk.modelcontextprotocol.io/v1/).
-It exposes only `create_service_request` and `update_service_request_status`.
+It exposes `create_service_request`, `update_service_request_status`, and
+`assign_service_request`.
 Input schemas are generated from strict Pydantic models and reject extra fields.
 Results include JSON text and `structuredContent`; failures set `isError: true`.
 
 Install dependencies and seed before starting, from the project root:
 
 ```powershell
-python -m pip install -e .
-python -m assistant.cli seed
-python -m assistant.actions.server --root .
+python -m pip install uv==0.12.23
+uv sync --locked --extra runtime --python 3.12
+uv run --locked --extra runtime python -m assistant.cli seed
+uv run --locked --extra runtime python -m assistant.actions.server --root .
 ```
 
 The installed `assistant-actions --root .` command is equivalent. An MCP client

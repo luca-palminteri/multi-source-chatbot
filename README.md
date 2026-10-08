@@ -6,8 +6,9 @@ LangGraph informational pipeline with grounded synthesis and trace output, and a
 separate MCP action server, and model-driven orchestration with MCP discovery and
 conversation memory, and a passive interactive terminal chat. Step 7 adds an
 evidence-based live evaluation runner and reproducible demo instructions.
-The Windows Python 3.12 environment (`.venv-win`) has been validated with
-49 automated tests, subprocess MCP checks, and 17 passing live Gemini scenarios.
+A clean Windows Python 3.12 environment installed from `uv.lock` passes
+53 automated tests, subprocess MCP checks, and all 17 live Gemini scenarios in
+one complete run using the stronger final-answer and action-result assertions.
 
 - [Scope and architecture](docs/architecture.md)
 - [Data and action contracts](docs/contracts.md)
@@ -21,19 +22,21 @@ Validate the dataset without credentials or dependencies (Python 3.10+):
 python scripts/validate_demo.py
 ```
 
-Install the retrieval and informational pipeline dependencies (Python 3.10+):
+Install the locked application and runtime dependencies (Python 3.10+). If this
+workspace already contains an MSYS `.venv`, first set
+`$env:UV_PROJECT_ENVIRONMENT = ".venv-win"`; use `.venv-win` in later commands.
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\python -m pip install -e .
+python -m pip install uv==0.12.23
+uv sync --locked --extra runtime --python 3.12
 Copy-Item .env.example .env
 ```
 
 Set your own `GOOGLE_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey) in `.env` for chat, ingestion, and document search.
-After switching from OpenAI, reinstall dependencies and rerun `python -m assistant.cli ingest` to rebuild the embedding index.
+After changing embedding providers or models, rerun ingestion to rebuild the index.
 Seeding and graph retrieval do not require credentials. On MSYS Python, the
-virtual environment executable is `.venv\bin\python.exe`; standard Windows
-Python uses `.venv\Scripts\python.exe` as shown here.
+virtual environment executable is `.venv\bin\python.exe`; the locked setup uses
+standard Windows Python and `.venv\Scripts\python.exe` as shown here.
 
 ```powershell
 .venv\Scripts\python -m assistant.cli seed
@@ -55,14 +58,18 @@ dependency extra adds the MCP adapter for agent orchestration.
 - [Agent orchestration, invocation, and validation status](docs/agent.md)
 - [Terminal chat and the complete startup sequence](docs/chat.md)
 
-After installing `pip install -e ".[runtime]"`, configuring `.env`, seeding, and
-ingesting, start `python -m assistant.cli chat`. It launches the MCP server
+After the locked installation, configuring `.env`, seeding, and
+ingesting, start `uv run --locked --extra runtime python -m assistant.cli chat`. It launches the MCP server
 automatically. Use `/new` for a fresh conversation and `/exit` to quit.
 
 Live Gemini calls and MCP actions have been verified against synthetic demo data.
 The unit suite uses deterministic models; `scripts/evaluate_demo.py` exercises real
-model calls and isolated MCP writes. A reproducible dependency lock is still pending.
-The verification report is saved in `runtime/evaluation.json`.
+model calls and isolated MCP writes. `uv.lock` pins dependencies across supported
+Python/platform combinations; CI installs with `uv sync --locked --extra runtime`.
+To deliberately refresh dependencies, run `uv lock --upgrade`, sync, and rerun checks.
+The latest verified run is saved in `runtime/evaluation-locked-final.json`.
+The evaluator writes to `runtime/evaluation.json` by default; use `--output`
+to preserve earlier reports.
 
 GitHub Actions runs demo data validation, the unit suite, and subprocess MCP checks
 on every push and pull request, and can also be started manually from the Actions

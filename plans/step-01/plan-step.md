@@ -6,9 +6,9 @@ Step 1 deliverables are implemented. See [scope and architecture](../../docs/arc
 [data/action contracts](../../docs/contracts.md), [example requests](../../docs/examples.md),
 [seed dataset](../../data/seed.json), and [configuration template](../../.env.example).
 Run `python scripts/validate_demo.py` from the repository root to validate the sources.
-This check passed on Python 3.10.10. Model and embedding defaults are selected;
-runtime dependency installation, configuration loading, and live API verification
-remain for step 2. No chatbot runtime or MCP actions have been implemented yet.
+Source validation passes. Model and embedding defaults, retrieval, the chatbot
+runtime, and MCP actions are implemented in later steps. Current verification
+and remaining acceptance work are recorded in [the demo guide](../../docs/demo.md).
 
 ## Outcome
 
