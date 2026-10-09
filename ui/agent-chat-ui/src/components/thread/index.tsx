@@ -6,6 +6,8 @@ import { useStreamContext } from "@/providers/Stream";
 import { useState, FormEvent } from "react";
 import { Button } from "../ui/button";
 import { AppearanceControl } from "@/components/appearance-control";
+import { useThreads } from "@/providers/Thread";
+import { ChatActions } from "./chat-actions";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
@@ -181,6 +183,24 @@ export function Thread() {
   const stream = useStreamContext();
   const messages = stream.messages;
   const isLoading = stream.isLoading;
+  const { request, revision } = useThreads();
+  const [chatTitle, setChatTitle] = useState("New chat");
+  useEffect(() => {
+    let current = true;
+    if (!threadId) {
+      return;
+    }
+    request(`/chat/${threadId}/settings`)
+      .then((data) => {
+        if (current) setChatTitle(data.title);
+      })
+      .catch(() => {
+        if (current) setChatTitle("Conversation");
+      });
+    return () => {
+      current = false;
+    };
+  }, [threadId, revision, isLoading, request]);
 
   const lastError = useRef<string | undefined>(undefined);
 
@@ -303,6 +323,8 @@ export function Thread() {
       <div className="relative hidden lg:flex">
         <motion.div
           className="bg-background absolute z-20 h-full overflow-hidden border-r"
+          inert={!chatHistoryOpen}
+          aria-hidden={!chatHistoryOpen && isLargeScreen}
           style={{ width: 300 }}
           animate={
             isLargeScreen
@@ -410,13 +432,22 @@ export function Thread() {
                     height={32}
                   />
                   <span className="hidden text-xl font-semibold tracking-tight sm:inline">
-                    Agent Chat
+                    {chatTitle}
                   </span>
                 </motion.button>
                 <ConnectedHost apiUrl={stream.apiUrl} />
               </div>
 
-              <HeaderActions onNewThread={() => setThreadId(null)} />
+              <div className="flex items-center">
+                {threadId && (
+                  <ChatActions
+                    id={threadId}
+                    title={chatTitle}
+                    busy={isLoading}
+                  />
+                )}
+                <HeaderActions onNewThread={() => setThreadId(null)} />
+              </div>
 
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
             </div>

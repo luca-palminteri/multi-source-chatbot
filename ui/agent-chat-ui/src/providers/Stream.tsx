@@ -87,7 +87,7 @@ const StreamSession = ({
   authScheme?: string;
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
-  const { getThreads, setThreads } = useThreads();
+  const { refresh } = useThreads();
   const streamValue = useTypedStream({
     callerOptions: { maxRetries: 0 },
     apiUrl,
@@ -112,9 +112,12 @@ const StreamSession = ({
       setThreadId(id);
       // Refetch threads list when thread ID changes.
       // Wait for some seconds before fetching so we're able to get the new thread that was created.
-      sleep().then(() => getThreads().then(setThreads).catch(console.error));
+      sleep().then(refresh);
     },
   });
+  useEffect(() => {
+    refresh();
+  }, [streamValue.isLoading, refresh]);
 
   useEffect(() => {
     checkGraphStatus(apiUrl, apiKey, authScheme).then((ok) => {
