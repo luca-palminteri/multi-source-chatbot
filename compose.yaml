@@ -1,5 +1,6 @@
 services:
   chatbot:
+    image: ${CHATBOT_IMAGE:-multi-source-chatbot:local}
     build:
       context: .
       args:
@@ -26,7 +27,7 @@ services:
         - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2024/ok', timeout=5); urllib.request.urlopen('http://127.0.0.1:3000', timeout=5)"
       interval: 30s
       timeout: 15s
-      start_period: 60s
+      start_period: 5m
       retries: 3
 
 volumes:
