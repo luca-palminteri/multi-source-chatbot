@@ -19,3 +19,4 @@ runtime/
 node_modules/
 .next/
 !.env.local.example
+ui/agent-chat-ui/.next-chat-actions-check/

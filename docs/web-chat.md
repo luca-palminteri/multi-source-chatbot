@@ -173,3 +173,44 @@ update/rebuild the UI's API URL. If setup reports an MSYS interpreter, use the
 dedicated `.venv-web` environment. `PYTHONUTF8=1` avoids Windows console encoding
 errors. A missing vector index requires ingestion with the same configured paths.
 After quota/timeouts, start a new thread and verify record state before retrying.
+
+Chat history supports cursor pagination, literal substring search across titles and
+visible user/assistant messages, Rename, Export Markdown, Export JSON, and Delete.
+Use the row's actions button or the current chat header. Rename accepts a trimmed
+1–100 character title and works during a run. Search is case-insensitive, debounced,
+and includes older conversations beyond the first page; tool results and messages
+with the UI's `do-not-render-` prefix are excluded from search.
+
+Exports download a persisted native checkpoint snapshot in UTF-8 with a sanitized
+title-based filename. Markdown includes visible messages and citation text. The
+versioned JSON record also includes native tool calls/results and public run IDs,
+statuses, and timestamps. JSON is a record, not an executable replay/import format.
+Export and deletion are unavailable while a run is pending or running. Delete
+permanently removes native history, checkpoints, and runs; it does not undo service
+request actions or remove the independent execution/submission/attempt ledger.
+
+Presentation settings live beside `SQLITE_PATH` in `.chat-catalog.sqlite3`, with
+separate default/manual titles, model, timestamps, an FTS5 trigram text index, and
+lifecycle tombstones. Native LangGraph state remains the message authority.
+Accepted and completed/cancelled/failed runs synchronize the catalog. Startup
+and opening history reconcile all paginated native threads and retry pending
+deletions, including tombstones whose native persistence flush was interrupted.
+Keep the catalog and execution ledger when backing up or moving the
+local demo: deletion tombstones prevent reuse of old conversation IDs.
+
+The narrow `/chat/history`, `/chat/{id}/settings`, `/chat/{id}/title`,
+`/chat/{id}/export`, and `/chat/{id}/delete` endpoints use the pinned local
+Agent Server's in-process storage operations. The per-thread lifecycle guard is
+shared with HTTP run admission. Generic state edits and native deletion remain
+blocked. This integration targets the single-process local in-memory server;
+another runtime requires verifying its native operations and guard semantics.
+
+Run `.venv-web/Scripts/python.exe scripts/check_web.py --browser` to check the
+controls against disposable native state and deterministic models without paid
+provider calls. It starts an isolated UI build and tests desktop/mobile keyboard
+menus, rename/error/reload behavior, search, Unicode downloads, and deletion
+selection. Browser evidence is in `runtime/chat-actions-browser/`; server checks
+are in `runtime/web-smoke/`. Chrome is the default browser on Windows; set
+`WEB_BROWSER_PATH` to override it.
+Set `CHAT_UI_ORIGIN` on the backend when serving the UI on a different local
+origin; the standard localhost/127.0.0.1 port 3000 origins are already allowed.

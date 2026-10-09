@@ -43,6 +43,12 @@ def main():
         environment = {**os.environ, "PYTHONUTF8": "1", "LANGSMITH_TRACING": "false",
                        "SQLITE_PATH": str(database), "VECTOR_INDEX_PATH": str(work / "index"),
                        "LANGGRAPH_API_DIR": str(work / "history")}
+        if "--browser" in sys.argv:
+            with socket.socket() as sock:
+                sock.bind(("127.0.0.1", 0))
+                ui_port = sock.getsockname()[1]
+            ui_url = f"http://127.0.0.1:{ui_port}"
+            environment["CHAT_UI_ORIGIN"] = ui_url
         with (evidence / "server.log").open("w", encoding="utf-8") as log:
             process = subprocess.Popen([sys.executable, "-c", "from langgraph_cli.cli import cli; cli()",
                 "dev", "--config", str(config), "--host", "127.0.0.1", "--port", str(port),
@@ -155,6 +161,125 @@ def main():
                     with closing(sqlite3.connect(database)) as connection:
                         count = connection.execute("SELECT COUNT(*) FROM service_requests WHERE summary='API smoke request'").fetchone()[0]
                     checks["no_duplicate_mutations"] = count == 3
+                    # Step 11: native listing/state/history and narrow chat controls.
+                    checks["native_history"] = bool(client.post(f"/threads/{identifier}/history", json={"limit": 2}).json())
+                    renamed = "Unicode café / 聊天"
+                    checks["rename"] = client.post(f"/chat/{identifier}/title", json={"title": renamed}).status_code == 200
+                    checks["rename_validation"] = all(client.post(f"/chat/{identifier}/title", json=payload).status_code == 400
+                        for payload in ({"title": " "}, {"title": "x" * 101}, {"title": "valid", "model": "injected"}))
+                    checks["rename_does_not_edit_state"] = client.get(f"/threads/{identifier}/state").json()["values"] == followup
+                    exported = client.get(f"/chat/{identifier}/export?format=json")
+                    exported.raise_for_status()
+                    transcript = json.loads(exported.json()["content"])
+                    checks["json_export"] = transcript["version"] == 1 and transcript["title"] == renamed and any(m["type"] == "tool" for m in transcript["messages"])
+                    checks["safe_export_filename"] = "/" not in exported.json()["filename"]
+                    failure_export = client.get(f"/chat/{uncertain}/export?format=json")
+                    failure_export.raise_for_status()
+                    checks["failed_chat_export"] = any(m["type"] == "tool" for m in json.loads(failure_export.json()["content"])["messages"])
+                    markdown = client.get(f"/chat/{identifier}/export?format=markdown").json()["content"]
+                    checks["markdown_export"] = renamed in markdown and "create-test" in markdown
+                    checks["literal_search"] = any(t["thread_id"] == identifier for t in client.get("/chat/history", params={"q": "CAFÉ"}).json()["threads"])
+                    checks["message_search"] = any(t["thread_id"] == identifier for t in client.get("/chat/history", params={"q": "create-test"}).json()["threads"])
+                    for _ in range(105):
+                        thread()
+                    found, cursor = [], None
+                    while True:
+                        page = client.get("/chat/history", params={"limit": 17, **({"cursor": cursor} if cursor else {})})
+                        page.raise_for_status()
+                        found.extend(t["thread_id"] for t in page.json()["threads"])
+                        cursor = page.json()["cursor"]
+                        if not cursor:
+                            break
+                    checks["pagination_beyond_100"] = len(found) > 100 and len(found) == len(set(found)) and identifier in found
+                    running = thread()
+                    run_response = client.post(f"/threads/{running}/runs", json=body("slow-test"))
+                    run_response.raise_for_status()
+                    checks["active_delete_rejected"] = client.post(f"/chat/{running}/delete", json={}).status_code == 409
+                    checks["active_export_rejected"] = client.get(f"/chat/{running}/export").status_code == 409
+                    checks["active_rename_allowed"] = client.post(f"/chat/{running}/title", json={"title": "Active chat"}).status_code == 200
+                    from concurrent.futures import ThreadPoolExecutor
+                    race = thread()
+                    with ThreadPoolExecutor(2) as pool:
+                        deletion = pool.submit(client.post, f"/chat/{race}/delete", json={})
+                        admission = pool.submit(client.post, f"/threads/{race}/runs", json=body("slow-test"))
+                        ds, rs = deletion.result().status_code, admission.result().status_code
+                    checks["delete_admission_race"] = (ds == 200 and rs in {400, 409}) or (ds == 409 and rs == 200)
+                    checks["blocked_history_delete"] = client.post(f"/chat/{slow}/delete", json={}).status_code == 200
+                    checks["native_delete"] = client.post(f"/chat/{identifier}/delete", json={}).status_code == 200
+                    checks["idempotent_delete"] = client.post(f"/chat/{identifier}/delete", json={}).status_code == 200
+                    checks["deleted_state_blocked"] = client.get(f"/threads/{identifier}/state").status_code == 400
+                    checks["deleted_export_blocked"] = client.get(f"/chat/{identifier}/export").status_code == 410
+                    checks["old_id_recreation_blocked"] = client.post("/threads", json={"thread_id": identifier.upper()}).status_code == 400
+                    checks["old_id_run_blocked"] = client.post(f"/threads/{identifier}/runs", json=body("fresh")).status_code == 400
+                    checks["deleted_search_removed"] = not client.get("/chat/history", params={"q": renamed}).json()["threads"]
+                    from assistant.chat_catalog import ChatCatalog
+                    catalog = ChatCatalog(database.with_suffix(".chat-catalog.sqlite3"))
+                    recovery = thread()
+                    catalog.lifecycle(recovery, "pending")  # Simulates interruption before native delete.
+                    native_rows = client.post("/threads/search", json={"ids": [recovery]}).json()
+                    checks["native_search_excludes_tombstones"] = not native_rows
+                    client.get("/chat/history").raise_for_status()
+                    checks["interrupted_delete_recovered"] = catalog.get(recovery)["lifecycle"] == "deleted" and client.get(f"/threads/{recovery}").status_code == 400
+                    with closing(sqlite3.connect(guard)) as connection:
+                        checks["deletion_retains_safety_ledger"] = bool(connection.execute("SELECT * FROM executions WHERE thread=?", (identifier,)).fetchone())
+                    with closing(sqlite3.connect(database)) as connection:
+                        checks["deletion_retains_business_records"] = connection.execute("SELECT COUNT(*) FROM service_requests WHERE summary='API smoke request'").fetchone()[0] == 3
+                    # Restart the same disposable native store and catalog.
+                    for _ in range(100):
+                        if client.get(f"/threads/{running}").json()["status"] != "busy":
+                            break
+                        time.sleep(0.1)
+                    time.sleep(10.5)  # Pinned native runtime flushes every 10 seconds.
+                    process.terminate()
+                    process.wait(timeout=10)
+                    process = subprocess.Popen([sys.executable, "-c", "from langgraph_cli.cli import cli; cli()",
+                        "dev", "--config", str(config), "--host", "127.0.0.1", "--port", str(port),
+                        "--no-browser", "--no-reload", "--allow-blocking"], cwd=work, env=environment,
+                        stdout=log, stderr=subprocess.STDOUT)
+                    deadline = time.monotonic() + 30
+                    while True:
+                        if process.poll() is not None:
+                            raise RuntimeError("Restart failed; inspect server.log")
+                        try:
+                            if client.get("/ok").status_code == 200:
+                                break
+                        except httpx.HTTPError:
+                            pass
+                        if time.monotonic() > deadline:
+                            raise TimeoutError("Restart timed out")
+                        time.sleep(0.2)
+                    checks["title_survives_server_restart"] = client.get(f"/chat/{running}/settings").json().get("title") == "Active chat"
+                    checks["message_search_survives_restart"] = any(t["thread_id"] == running for t in client.get("/chat/history", params={"q": "slow-test"}).json()["threads"])
+                    checks["tombstone_survives_restart"] = client.post("/threads", json={"thread_id": identifier}).status_code == 400
+                    if "--browser" in sys.argv:
+                        api_url = f"http://127.0.0.1:{port}"
+                        ui_env = {**os.environ, "NEXT_PUBLIC_API_URL": api_url, "NEXT_PUBLIC_ASSISTANT_ID": "assistant",
+                                  "WEB_CHECK_DIST_DIR": ".next-chat-actions-check", "WEB_UI_URL": ui_url}
+                        ui_config = ROOT / "ui/agent-chat-ui/tsconfig.json"
+                        saved_ui_config = ui_config.read_bytes()
+                        with (evidence / "ui.log").open("w", encoding="utf-8") as ui_log:
+                            ui = subprocess.Popen(["node", "node_modules/next/dist/bin/next", "dev", "--hostname", "127.0.0.1",
+                                "--port", str(ui_port)], cwd=ROOT / "ui/agent-chat-ui", env=ui_env, stdout=ui_log, stderr=subprocess.STDOUT)
+                            try:
+                                deadline = time.monotonic() + 60
+                                while time.monotonic() < deadline:
+                                    if ui.poll() is not None:
+                                        raise RuntimeError("UI startup failed; inspect runtime/web-smoke/ui.log")
+                                    try:
+                                        if httpx.get(ui_url, timeout=10).status_code == 200:
+                                            break
+                                    except httpx.HTTPError:
+                                        pass
+                                    time.sleep(0.2)
+                                result = subprocess.run(["node", str(ROOT / "scripts/check_chat_actions_browser.cjs"), api_url],
+                                    cwd=ROOT, env=ui_env, timeout=180)
+                                checks["chat_actions_browser"] = result.returncode == 0
+                            finally:
+                                try:
+                                    ui.terminate()
+                                    ui.wait(timeout=10)
+                                finally:
+                                    ui_config.write_bytes(saved_ui_config)
             finally:
                 process.terminate()
                 try:

@@ -24,3 +24,14 @@ artifact controls, focus rings, and shared buttons use theme tokens or paired
 status colors. Sonner inherits the provider's theme. Code blocks retain the
 upstream dark Prism palette in both appearances; their copy hover stays readable.
 No backend or message-submission behavior changes.
+
+Local chat actions patch (step 11): Thread.tsx uses the application's paginated
+catalog endpoints. History has debounced literal search, snippets, loading/error/
+empty states, and Load more. chat-actions.tsx supplies keyboard/mobile menus,
+validated rename and permanent-delete dialogs, and UTF-8 Markdown/JSON downloads.
+The header displays the persisted title and the same actions; Stream.tsx refreshes
+history when run loading changes. Export/delete controls are disabled during runs.
+All new surfaces use existing theme tokens. The backend retains replay safeguards
+and deletion tombstones while cascading native history deletion. JSON downloads
+are transcript records, not executable replay/import data. next.config.mjs accepts
+WEB_CHECK_DIST_DIR for isolated disposable browser verification builds.
