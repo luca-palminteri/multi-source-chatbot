@@ -20,3 +20,4 @@ node_modules/
 .next/
 !.env.local.example
 ui/agent-chat-ui/.next-chat-actions-check/
+ui/agent-chat-ui/.next-readme/
