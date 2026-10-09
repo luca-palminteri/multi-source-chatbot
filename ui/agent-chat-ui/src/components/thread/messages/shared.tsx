@@ -38,7 +38,7 @@ function ContentCopyable({
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.15 }}
           >
-            <CopyCheck className="text-green-500" />
+            <CopyCheck className="text-green-700 dark:text-green-400" />
           </motion.div>
         ) : (
           <motion.div
@@ -91,5 +91,10 @@ export function CommandBar({
   isLoading: boolean;
 }) {
   // Copy is safe; edit and regeneration can replay committed actions.
-  return <ContentCopyable content={content} disabled={isLoading} />;
+  return (
+    <ContentCopyable
+      content={content}
+      disabled={isLoading}
+    />
+  );
 }

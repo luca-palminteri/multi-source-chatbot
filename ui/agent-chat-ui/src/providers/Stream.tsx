@@ -18,6 +18,7 @@ import {
 import { useQueryState } from "nuqs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AppearanceControl } from "@/components/appearance-control";
 import { LangGraphLogoSVG } from "@/components/icons/langgraph";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -181,7 +182,10 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
         <div className="animate-in fade-in-0 zoom-in-95 bg-background flex max-w-3xl flex-col rounded-lg border shadow-lg">
-          <div className="mt-14 flex flex-col gap-2 border-b p-6">
+          <div className="flex flex-col gap-2 border-b p-6">
+            <div className="flex justify-end">
+              <AppearanceControl />
+            </div>
             <div className="flex flex-col items-start gap-2">
               <LangGraphLogoSVG className="h-7" />
               <h1 className="text-xl font-semibold tracking-tight">
@@ -214,7 +218,8 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
           >
             <div className="flex flex-col gap-2">
               <Label htmlFor="apiUrl">
-                Deployment URL<span className="text-rose-500">*</span>
+                Deployment URL
+                <span className="text-rose-700 dark:text-rose-400">*</span>
               </Label>
               <p className="text-muted-foreground text-sm">
                 This is the URL of your LangGraph deployment. Can be a local, or
@@ -231,7 +236,8 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="assistantId">
-                Assistant / Graph ID<span className="text-rose-500">*</span>
+                Assistant / Graph ID
+                <span className="text-rose-700 dark:text-rose-400">*</span>
               </Label>
               <p className="text-muted-foreground text-sm">
                 This is the ID of the graph (can be the graph name), or

@@ -51,6 +51,7 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
       <span className="lowercase [&>span]:text-xs">{language}</span>
       <TooltipIconButton
         tooltip="Copy"
+        className="hover:bg-white/15 hover:text-white"
         onClick={onCopy}
       >
         {!isCopied && <CopyIcon />}

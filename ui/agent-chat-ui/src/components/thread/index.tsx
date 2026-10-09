@@ -5,12 +5,11 @@ import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
 import { useState, FormEvent } from "react";
 import { Button } from "../ui/button";
+import { AppearanceControl } from "@/components/appearance-control";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
-import {
-  DO_NOT_RENDER_ID_PREFIX,
-} from "@/lib/ensure-tool-responses";
+import { DO_NOT_RENDER_ID_PREFIX } from "@/lib/ensure-tool-responses";
 import { LangGraphLogoSVG } from "../icons/langgraph";
 import { TooltipIconButton } from "./tooltip-icon-button";
 import {
@@ -107,6 +106,24 @@ function OpenGitHubRepo() {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  );
+}
+
+function HeaderActions({ onNewThread }: { onNewThread: () => void }) {
+  return (
+    <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+      <AppearanceControl />
+      <div className="hidden items-center sm:flex">
+        <OpenGitHubRepo />
+      </div>
+      <TooltipIconButton
+        className="size-10 p-2"
+        tooltip="New thread"
+        onClick={onNewThread}
+      >
+        <SquarePen className="size-5" />
+      </TooltipIconButton>
+    </div>
   );
 }
 
@@ -285,7 +302,7 @@ export function Thread() {
     <div className="flex h-screen w-full overflow-hidden">
       <div className="relative hidden lg:flex">
         <motion.div
-          className="absolute z-20 h-full overflow-hidden border-r bg-white"
+          className="bg-background absolute z-20 h-full overflow-hidden border-r"
           style={{ width: 300 }}
           animate={
             isLargeScreen
@@ -339,7 +356,8 @@ export function Thread() {
               <div>
                 {(!chatHistoryOpen || !isLargeScreen) && (
                   <Button
-                    className="hover:bg-gray-100"
+                    className="hover:bg-accent"
+                    aria-label="Toggle thread history"
                     variant="ghost"
                     onClick={() => setChatHistoryOpen((p) => !p)}
                   >
@@ -351,8 +369,8 @@ export function Thread() {
                   </Button>
                 )}
               </div>
-              <div className="absolute top-2 right-4 flex items-center">
-                <OpenGitHubRepo />
+              <div className="absolute top-2 right-4">
+                <HeaderActions onNewThread={() => setThreadId(null)} />
               </div>
             </div>
           )}
@@ -362,7 +380,8 @@ export function Thread() {
                 <div className="absolute left-0 z-10">
                   {(!chatHistoryOpen || !isLargeScreen) && (
                     <Button
-                      className="hover:bg-gray-100"
+                      className="hover:bg-accent"
+                      aria-label="Toggle thread history"
                       variant="ghost"
                       onClick={() => setChatHistoryOpen((p) => !p)}
                     >
@@ -378,7 +397,7 @@ export function Thread() {
                   className="flex cursor-pointer items-center gap-2"
                   onClick={() => setThreadId(null)}
                   animate={{
-                    marginLeft: !chatHistoryOpen ? 48 : 0,
+                    marginLeft: !chatHistoryOpen || !isLargeScreen ? 48 : 0,
                   }}
                   transition={{
                     type: "spring",
@@ -390,27 +409,14 @@ export function Thread() {
                     width={32}
                     height={32}
                   />
-                  <span className="text-xl font-semibold tracking-tight">
+                  <span className="hidden text-xl font-semibold tracking-tight sm:inline">
                     Agent Chat
                   </span>
                 </motion.button>
                 <ConnectedHost apiUrl={stream.apiUrl} />
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center">
-                  <OpenGitHubRepo />
-                </div>
-                <TooltipIconButton
-                  size="lg"
-                  className="p-4"
-                  tooltip="New thread"
-                  variant="ghost"
-                  onClick={() => setThreadId(null)}
-                >
-                  <SquarePen className="size-5" />
-                </TooltipIconButton>
-              </div>
+              <HeaderActions onNewThread={() => setThreadId(null)} />
 
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
             </div>
@@ -419,7 +425,7 @@ export function Thread() {
           <StickToBottom className="relative flex-1 overflow-hidden">
             <StickyToBottomContent
               className={cn(
-                "absolute inset-0 overflow-y-scroll px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent",
+                "[&::-webkit-scrollbar-thumb]:bg-accent absolute inset-0 overflow-y-scroll px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent",
                 !chatStarted && "mt-[25vh] flex flex-col items-stretch",
                 chatStarted && "grid grid-rows-[1fr_auto]",
               )}
@@ -460,7 +466,7 @@ export function Thread() {
                 </>
               }
               footer={
-                <div className="sticky bottom-0 flex flex-col items-center gap-8 bg-white">
+                <div className="bg-background sticky bottom-0 flex flex-col items-center gap-8">
                   {!chatStarted && (
                     <div className="flex items-center gap-3">
                       <LangGraphLogoSVG className="h-8 flex-shrink-0" />
@@ -475,7 +481,7 @@ export function Thread() {
                   <div
                     ref={dropRef}
                     className={cn(
-                      "bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all",
+                      "bg-muted focus-within:ring-ring relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all focus-within:ring-2",
                       dragOver
                         ? "border-primary border-2 border-dotted"
                         : "border border-solid",
@@ -508,7 +514,8 @@ export function Thread() {
                           }
                         }}
                         placeholder="Type your message..."
-                        className="field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
+                        aria-label="Message"
+                        className="placeholder:text-muted-foreground field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
                       />
 
                       <div className="flex items-center gap-6 p-2 pt-4">
@@ -521,7 +528,7 @@ export function Thread() {
                             />
                             <Label
                               htmlFor="render-tool-calls"
-                              className="text-sm text-gray-600"
+                              className="text-muted-foreground text-sm"
                             >
                               Hide Tool Calls
                             </Label>
@@ -531,8 +538,8 @@ export function Thread() {
                           htmlFor="file-input"
                           className="hidden"
                         >
-                          <Plus className="size-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">
+                          <Plus className="text-muted-foreground size-5" />
+                          <span className="text-muted-foreground text-sm">
                             Upload PDF or Image
                           </span>
                         </Label>
@@ -580,7 +587,8 @@ export function Thread() {
               <ArtifactTitle className="truncate overflow-hidden" />
               <button
                 onClick={closeArtifact}
-                className="cursor-pointer"
+                aria-label="Close artifact"
+                className="focus-visible:outline-ring cursor-pointer rounded-sm focus-visible:outline-2"
               >
                 <XIcon className="size-5" />
               </button>

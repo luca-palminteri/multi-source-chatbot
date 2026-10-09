@@ -27,6 +27,7 @@ Example combined question: "Which team handles VPN access, and what does the acc
 6. [Connect the passive chat interface](step-06/plan-step.md)
 7. [Verify requirements and prepare the demo](step-07/plan-step.md)
 8. [Connect LangChain Agent Chat UI](step-08/plan-step.md) (implemented and locally verified)
+9. [Add dark mode](step-09/plan-step.md) (implemented and locally verified)
 
 Steps 3 and 4 both depend on step 2's data contracts; step 5 joins them. Keep actions outside the informational pipeline. Model-selected tool calls determine intent; do not implement keyword or manually classified intent routing. Ordinary input validation and protocol dispatch do not replace model intent selection.
 

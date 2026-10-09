@@ -83,6 +83,29 @@ inspect lookup evidence, citation markers, and MCP results. Refresh to retrieve
 history, or use “New thread” for an independent conversation. The application
 accepts text messages only, with a 4000-character limit.
 
+## Appearance
+
+Use the appearance icon in the chat header to choose **Light**, **Dark**, or
+**System**. The icon menu is also available on mobile and on the connection form.
+A fresh visit defaults to System and follows later OS appearance changes. Your
+choice persists for this browser origin in local storage (`agent-chat-appearance`).
+Code blocks keep their dark syntax-highlighting palette in either appearance.
+
+To verify appearance against the running UI without backend credentials or model
+calls, run:
+
+```powershell
+$env:WEB_BROWSER_PATH = "C:/Program Files/Google/Chrome/Application/chrome.exe"
+node scripts/check_web_appearance.cjs
+```
+
+Set `WEB_UI_URL` if the UI uses a different address. Optionally set `WEB_SETUP_URL`
+to a UI started without public API URL/assistant ID settings to also check the
+connection form. The check supplies a disposable deterministic HTTP stream and
+checks desktop/mobile appearance, System updates, persistence, initial paint,
+conversation rendering, and history. Screenshots and a report are saved under
+ignored `runtime/appearance-verification/`.
+
 ## Execution and history limits
 
 The server owns thread IDs and checkpoint persistence. Each UI turn submits only
