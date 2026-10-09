@@ -1,90 +1,212 @@
+<div align="center">
+
 # Multi-source internal assistant
 
-Steps 1 through 6 have source implementations: scope, synthetic data, configuration,
-SQLite setup, document ingestion/search, typed graph traversal, and a centralized
-LangGraph informational pipeline with grounded synthesis and trace output, and a
-separate MCP action server, and model-driven orchestration with MCP discovery and
-conversation memory, and a passive interactive terminal chat. Step 7 adds an
-evidence-based live evaluation runner and reproducible demo instructions.
-A clean Windows Python 3.12 environment installed from `uv.lock` passes
-53 automated tests, subprocess MCP checks, and all 17 live Gemini scenarios in
-one complete run using the stronger final-answer and action-result assertions.
+**Ask about policies. Find the right team. Create and manage service requests.**
 
-Step 8 adds the pinned upstream Agent Chat UI and a local LangGraph server, with
-shared orchestration, visible tool activity, server-owned conversation history,
-and safeguards against replaying uncertain actions. See [browser setup](docs/web-chat.md).
-To run the backend and UI together in one container, see [Docker setup](docs/docker.md).
+A LangGraph assistant combining document retrieval, a knowledge graph, and MCP actions,
+with browser and terminal chat.
 
-- [Scope and architecture](docs/architecture.md)
-- [Data and action contracts](docs/contracts.md)
-- [Representative requests](docs/examples.md)
-- [Implementation plan](plans/README.md)
-- [Verification, requirement evidence, reset workflow, and presenter demo](docs/demo.md)
+[Quick start](#quick-start) · [App preview](#app-preview) · [Architecture](docs/architecture.md) · [Demo guide](docs/demo.md)
 
-Validate the dataset without credentials or dependencies (Python 3.10+):
+</div>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/desktop-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/desktop-light.png">
+  <img alt="Browser chat showing VPN policy requirements, source citations, and searchable conversation history" src="docs/images/desktop-light.png" width="1440">
+</picture>
+
+*The actual browser UI, captured with fixed synthetic demo responses. The preview follows your light or dark appearance.*
+
+## App preview
+
+<table>
+  <tr>
+    <th>Dark mode and chat controls</th>
+    <th>Mobile chat</th>
+  </tr>
+  <tr>
+    <td valign="top"><a href="docs/images/chat-actions.png"><img src="docs/images/chat-actions.png" alt="Dark appearance with the Rename, Export Markdown, Export JSON, and Delete menu open" width="1000"></a></td>
+    <td valign="top"><a href="docs/images/mobile.png"><img src="docs/images/mobile.png" alt="VPN policy answer and message composer on a mobile screen" width="260"></a></td>
+  </tr>
+  <tr>
+    <td>Search your history, rename chats, and export conversations.</td>
+    <td>The same conversation on a smaller screen.</td>
+  </tr>
+</table>
+
+Screenshots use the real UI with deterministic fixtures based on the synthetic
+VPN policy and service ownership data; they are illustrative, not live model evaluation
+results. [Recreate the captures](docs/images/README.md).
+
+## What you can do
+
+| Feature | Behavior |
+| --- | --- |
+| **Grounded answers** | Combine document passages and explicit graph relationships, with source citations. |
+| **Service-request actions** | Create requests, update status, and assign teams through a separate MCP server. |
+| **Visible tool activity** | Inspect retrieval and action calls, or hide them for a cleaner conversation. |
+| **Conversation management** | Paginated history, title/message search, rename, Markdown/JSON export, and permanent deletion. |
+| **Appearance** | Persistent Light, Dark, or System settings on desktop and mobile. |
+| **Execution safeguards** | Server-owned history, same-thread concurrency rejection, and safeguards against replaying uncertain actions. |
+| **Container setup** | One image for the backend and UI, automatic seeding/indexing, and persistent volumes. |
+
+Deleting a conversation preserves service-request records and the independent
+execution ledger. Additional chat providers and browser model selection remain
+planned; chat and embeddings currently use Google.
+
+## How it works
+
+```mermaid
+flowchart LR
+    UI[Browser or terminal chat] --> Agent[LangGraph agent]
+    Agent --> Info[Centralized informational pipeline]
+    Info --> Docs[Document vector index]
+    Info --> Graph[Typed knowledge graph]
+    Agent --> MCP[Separate MCP action server]
+    Graph --> DB[(SQLite records)]
+    MCP --> DB
+```
+
+The model selects tools autonomously. Informational questions enter the centralized
+retrieval pipeline; service-request mutations execute through MCP tools. Both chat
+interfaces share orchestration and prompts. See [architecture](docs/architecture.md)
+and [data/action contracts](docs/contracts.md) for details.
+
+## Quick start
+
+Use Docker Desktop with Linux containers. From the repository root, copy the
+example environment for a fresh checkout:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Set `GOOGLE_API_KEY` in `.env` using your key from
+[Google AI Studio](https://aistudio.google.com/apikey), then start the prebuilt image:
+
+```powershell
+$env:CHATBOT_IMAGE = "ghcr.io/luca-palminteri/multi-source-chatbot:latest"
+docker compose up -d --pull always --no-build
+```
+
+| Service | Address |
+| --- | --- |
+| Browser chat | <http://localhost:3000> |
+| Backend health | <http://localhost:20240/ok> |
+
+Startup seeds the database and builds or reuses the document index. Initial
+indexing calls the embedding provider; existing records are preserved, and named
+volumes retain data and history across container replacement.
+
+```powershell
+docker compose logs -f chatbot
+docker compose down  # stop while retaining data
+```
+
+Published tags support Linux amd64 and arm64. For registry access, pinned tags,
+local builds, custom ports, and reset instructions, see [Docker setup](docs/docker.md).
+This packages a local demo server without authentication; see the documented
+[browser execution and history limits](docs/web-chat.md#execution-and-history-limits).
+
+Want to run the services directly? Follow [browser setup](docs/web-chat.md).
+
+## Terminal setup
+
+The terminal application supports Python 3.10+; the browser server requires
+Python 3.12+. The commands below use standard Windows Python 3.12.
+
+```powershell
+python -m pip install uv==0.12.23
+uv sync --locked --extra runtime --python 3.12
+Copy-Item .env.example .env  # only for a fresh checkout
+```
+
+Configure `GOOGLE_API_KEY` in `.env`, then seed, ingest, and start chat:
+
+```powershell
+.venv\Scripts\python -m assistant.cli seed
+.venv\Scripts\python -m assistant.cli ingest
+uv run --locked --extra runtime python -m assistant.cli chat
+```
+
+Chat launches its MCP server automatically. Use `/new` for a fresh conversation
+and `/exit` to quit. Run from the project root, or pass `--root <project-directory>`
+before a CLI subcommand. The installed `assistant` command exposes the same commands.
+
+If an existing `.venv` uses MSYS Python, set
+`$env:UV_PROJECT_ENVIRONMENT = ".venv-win"` before syncing and use `.venv-win`
+in executable paths. MSYS executable paths use `.venv\bin\python.exe`.
+Seeding and graph retrieval do not require credentials; ingestion, document
+search, and chat do. Rerun ingestion after changing embedding providers or models.
+
+<details>
+<summary><strong>Explore retrieval from the CLI</strong></summary>
+
+```powershell
+.venv\Scripts\python -m assistant.cli graph emp-001 --step MEMBER_OF:out --step OWNS:out
+.venv\Scripts\python -m assistant.cli graph svc-vpn --step OWNS:in
+.venv\Scripts\python -m assistant.cli search "What does VPN access require?"
+.venv\Scripts\python -m assistant.cli ask "Which team handles VPN access, and what does the access policy require?" --trace
+```
+
+See [terminal chat](docs/chat.md) for the complete startup sequence.
+
+</details>
+
+## Verification
+
+Validate the synthetic dataset without credentials or dependencies (Python 3.10+):
 
 ```powershell
 python scripts/validate_demo.py
 ```
 
-Install the locked application and runtime dependencies (Python 3.10+). If this
-workspace already contains an MSYS `.venv`, first set
-`$env:UV_PROJECT_ENVIRONMENT = ".venv-win"`; use `.venv-win` in later commands.
+After installing the runtime dependencies:
 
 ```powershell
-python -m pip install uv==0.12.23
-uv sync --locked --extra runtime --python 3.12
-Copy-Item .env.example .env
+uv run --locked --extra runtime python -m unittest discover -s tests -v
+uv run --locked --extra runtime python scripts/check_mcp.py
 ```
 
-Set your own `GOOGLE_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey) in `.env` for chat, ingestion, and document search.
-After changing embedding providers or models, rerun ingestion to rebuild the index.
-Seeding and graph retrieval do not require credentials. On MSYS Python, the
-virtual environment executable is `.venv\bin\python.exe`; the locked setup uses
-standard Windows Python and `.venv\Scripts\python.exe` as shown here.
+CI runs Python checks on Linux (3.10/3.12) and Windows (3.12). Separate Linux and
+Windows web jobs test the execution boundary and chat lifecycle, run disposable
+Agent Server checks, and build the pinned UI. After these pass, the container job
+builds both Linux architectures and publishes to GHCR from the default branch
+and `v*` version tags.
+
+Live Gemini evaluation is an explicit local command:
 
 ```powershell
-.venv\Scripts\python -m assistant.cli seed
-.venv\Scripts\python -m assistant.cli graph emp-001 --step MEMBER_OF:out --step OWNS:out
-.venv\Scripts\python -m assistant.cli graph svc-vpn --step OWNS:in
-.venv\Scripts\python -m assistant.cli ingest
-.venv\Scripts\python -m assistant.cli search "What does VPN access require?"
-.venv\Scripts\python -m assistant.cli ask "Which team handles VPN access, and what does the access policy require?" --trace
-.venv\Scripts\python -m unittest discover -s tests -v
+uv run --locked --extra runtime python scripts/evaluate_demo.py
 ```
 
-The installed `assistant` command exposes the same commands. Run from the project
-root or pass `--root <project-directory>` before the subcommand. The `runtime`
-dependency extra adds the MCP adapter for agent orchestration.
+It makes real model/retrieval calls and isolated MCP writes using disposable demo
+state; it does not reset your chat database. Reports default to
+`runtime/evaluation.json`; use `--output` to preserve earlier reports. The prior
+locked-run evidence is in `runtime/evaluation-locked-final.json` when available
+in your local workspace. See [verification and demo instructions](docs/demo.md)
+for evidence, expected behavior, and limits.
 
-- [Retrieval setup, contracts, and validation status](docs/retrieval.md)
-- [Informational pipeline, tool contract, and validation limits](docs/information.md)
-- [Action MCP startup, retry behavior, and client smoke check](docs/actions.md)
-- [Agent orchestration, invocation, and validation status](docs/agent.md)
-- [Terminal chat and the complete startup sequence](docs/chat.md)
-- [Browser chat, Windows setup, and execution safeguards](docs/web-chat.md)
+`uv.lock` pins dependencies across supported Python/platform combinations. To
+refresh them deliberately, run `uv lock --upgrade`, sync, and rerun checks.
 
-After the locked installation, configuring `.env`, seeding, and
-ingesting, start `uv run --locked --extra runtime python -m assistant.cli chat`. It launches the MCP server
-automatically. Use `/new` for a fresh conversation and `/exit` to quit.
+## Documentation and roadmap
 
-Live Gemini calls and MCP actions have been verified against synthetic demo data.
-The unit suite uses deterministic models; `scripts/evaluate_demo.py` exercises real
-model calls and isolated MCP writes. `uv.lock` pins dependencies across supported
-Python/platform combinations; CI installs with `uv sync --locked --extra runtime`.
-To deliberately refresh dependencies, run `uv lock --upgrade`, sync, and rerun checks.
-The latest verified run is saved in `runtime/evaluation-locked-final.json`.
-The evaluator writes to `runtime/evaluation.json` by default; use `--output`
-to preserve earlier reports.
+| Guide | Covers |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Scope, components, and design decisions |
+| [Contracts](docs/contracts.md) | Data relationships and action behavior |
+| [Example requests](docs/examples.md) | Informational, action, and mixed requests |
+| [Retrieval](docs/retrieval.md) | Index setup, graph traversal, and validation |
+| [Informational pipeline](docs/information.md) | Grounded synthesis and tool contract |
+| [MCP actions](docs/actions.md) | Server startup, retry behavior, and smoke checks |
+| [Agent orchestration](docs/agent.md) | Tool discovery, invocation, and memory |
+| [Terminal chat](docs/chat.md) | CLI setup and conversation controls |
+| [Browser chat](docs/web-chat.md) | Windows setup, appearance, history, and safeguards |
+| [Docker](docs/docker.md) | Local builds, GHCR images, and persistent state |
+| [Demo and verification](docs/demo.md) | Presenter conversation, reset workflow, and evidence |
 
-GitHub Actions runs demo data validation, the unit suite, and subprocess MCP checks
-on every push and pull request, and can also be started manually from the Actions
-tab. CI covers Python 3.10 and 3.12 on Linux and Python 3.12 on Windows, installs
-the `runtime` extra, and requires no API credentials. Live Gemini evaluation stays
-an explicit local command.
-
-After installing/configuring the runtime, run `python scripts/check_mcp.py` for
-real subprocess protocol checks and `python scripts/evaluate_demo.py` for the
-live model/retrieval/action evaluation. The latter creates disposable demo state
-and captures evidence in `runtime/evaluation.json`; it does not reset your chat
-database. See [the demo guide](docs/demo.md) for expected behavior and limits.
+[Implementation plan](plans/README.md): steps **1-9 and 11** are implemented.
+Step **10**, additional providers and browser model selection, remains planned.

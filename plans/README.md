@@ -29,7 +29,7 @@ Example combined question: "Which team handles VPN access, and what does the acc
 8. [Connect LangChain Agent Chat UI](step-08/plan-step.md) (implemented and locally verified)
 9. [Add dark mode](step-09/plan-step.md) (implemented and locally verified)
 10. [Add providers with free tiers and model selection](step-10/plan-step.md) (planned; providers before selector)
-11. [Add chat renaming, search, export, and deletion](step-11/plan-step.md) (planned)
+11. [Add chat renaming, search, export, and deletion](step-11/plan-step.md) (implemented and locally verified)
 
 Steps 9-11 extend the existing browser UI. Step 9 is independent; step 10 adds
 provider support before model selection; step 11 shares thread settings with
