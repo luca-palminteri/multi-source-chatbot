@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import asynccontextmanager, closing
 import json
+import os
 from pathlib import Path
 import re
 import sqlite3
@@ -15,7 +16,9 @@ from langgraph_sdk.runtime import ServerRuntime
 from langgraph.constants import TAG_NOSTREAM
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
+from starlette.exceptions import HTTPException
+from . import chat_service
 
 from .agent import build_graph, connect_action_tools
 from .config import Settings
@@ -26,6 +29,10 @@ from .messages import message_text
 
 STOPPED = "Execution stopped. An action may have committed. Start a new conversation and retrieve current records before retrying."
 TURN_TIMEOUT = 120
+
+
+def allowed_origin(origin):
+    return origin in {"http://localhost:3000", "http://127.0.0.1:3000", os.environ.get("CHAT_UI_ORIGIN")}
 
 
 class ExecutionLedger:
@@ -118,18 +125,64 @@ class ExecutionBoundary:
     def __init__(self, app):
         self.app = app
 
-    async def reject(self, scope, receive, send, detail):
+    async def reject(self, scope, receive, send, detail, status=400):
         origin = dict(scope["headers"]).get(b"origin", b"").decode()
         headers = {"Vary": "Origin"}
-        if origin in {"http://localhost:3000", "http://127.0.0.1:3000"}:
+        if allowed_origin(origin):
             headers["Access-Control-Allow-Origin"] = origin
-        await JSONResponse({"detail": detail}, 400, headers=headers)(scope, receive, send)
+        await JSONResponse({"detail": detail}, status, headers=headers)(scope, receive, send)
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         path, method = scope["path"].rstrip("/"), scope["method"]
         query = parse_qs(scope.get("query_string", b"").decode())
+        if path.startswith("/chat/"):
+            origin = dict(scope["headers"]).get(b"origin", b"").decode()
+            if method == "OPTIONS":
+                headers = {"Vary": "Origin"}
+                if allowed_origin(origin):
+                    headers.update({"Access-Control-Allow-Origin": origin,
+                        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type, X-Api-Key, X-Auth-Scheme"})
+                return await Response(status_code=204, headers=headers)(scope, receive, send)
+            try:
+                raw = bytearray()
+                if method == "POST":
+                    while True:
+                        event = await receive()
+                        if event["type"] == "http.disconnect":
+                            return
+                        raw.extend(event.get("body", b""))
+                        if len(raw) > 2000:
+                            raise ValueError("Request too large")
+                        if not event.get("more_body"):
+                            break
+                result = await chat_service.operation(path, method, query, json.loads(raw) if raw else None)
+                response = JSONResponse(result)
+            except (ValueError, TypeError) as exc:
+                response = JSONResponse({"detail": str(exc)}, 400)
+            except HTTPException as exc:
+                response = JSONResponse({"detail": exc.detail}, exc.status_code)
+            except Exception as exc:
+                log_failure("Chat operation", exc)
+                response = JSONResponse({"detail": "Chat operation failed. Retry after checking the server."}, 503)
+            origin = dict(scope["headers"]).get(b"origin", b"").decode()
+            if allowed_origin(origin):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Vary"] = "Origin"
+            return await response(scope, receive, send)
+        native_thread = re.match(r"/threads/([^/]+)(?:/|$)", path)
+        if native_thread and native_thread[1] != "search":
+            from uuid import UUID
+            try:
+                native_id = str(UUID(native_thread[1]))
+            except ValueError:
+                return await self.reject(scope, receive, send, "Invalid thread ID")
+            store = await asyncio.to_thread(chat_service.catalog)
+            row = await asyncio.to_thread(store.get, native_id)
+            if row and row["lifecycle"] != "live":
+                return await self.reject(scope, receive, send, "Conversation permanently deleted")
         if path.endswith("/cancel") and "rollback" in query.get("action", []):
             return await self.reject(scope, receive, send, "Cancellation cannot roll back actions")
         run = re.fullmatch(r"/threads/([^/]+)/runs(?:/(stream|wait))?", path)
@@ -142,6 +195,32 @@ class ExecutionBoundary:
             if not (safe or (run and method == "POST")):
                 return await self.reject(scope, receive, send, "Execution replay and state changes are disabled")
         if not ((run and method == "POST") or creating):
+            if path == "/threads/search" and method == "POST":
+                store = await asyncio.to_thread(chat_service.catalog)
+                tombstones = set(await asyncio.to_thread(store.tombstones))
+                if tombstones:
+                    start = None
+                    chunks = bytearray()
+
+                    async def filtered_send(event):
+                        nonlocal start
+                        if event["type"] == "http.response.start":
+                            start = event
+                        elif event["type"] == "http.response.body":
+                            chunks.extend(event.get("body", b""))
+                            if not event.get("more_body"):
+                                payload = bytes(chunks)
+                                if start["status"] == 200:
+                                    rows = json.loads(payload)
+                                    payload = json.dumps([row for row in rows if row["thread_id"] not in tombstones]).encode()
+                                start["headers"] = [(key, value) for key, value in start["headers"] if key != b"content-length"]
+                                start["headers"].append((b"content-length", str(len(payload)).encode()))
+                                await send(start)
+                                await send({"type": "http.response.body", "body": payload})
+                        else:
+                            await send(event)
+
+                    return await self.app(scope, receive, filtered_send)
             return await self.app(scope, receive, send)
         raw = bytearray()
         while True:
@@ -158,6 +237,9 @@ class ExecutionBoundary:
             if creating:
                 if not isinstance(body, dict) or set(body) - {"thread_id", "metadata", "if_exists"}:
                     raise ValueError("Threads must start empty; injected state and supersteps are disabled")
+                if body.get("thread_id"):
+                    from uuid import UUID
+                    body["thread_id"] = str(UUID(body["thread_id"]))
             else:
                 message_id = validate_submission(body)
                 settings = await asyncio.to_thread(lambda: Settings.load(Path(__file__).resolve().parents[2]))
@@ -177,10 +259,56 @@ class ExecutionBoundary:
         scope = dict(scope)
         scope["headers"] = [(key, value) for key, value in scope["headers"] if key != b"content-length"]
         scope["headers"].append((b"content-length", str(len(payload)).encode()))
-        await self.app(scope, replacement_receive, send)
+        identifier = body.get("thread_id") if creating else run[1]
+        if identifier:
+            from uuid import UUID
+            identifier = str(UUID(identifier))
+            admission_guard = chat_service.guards[identifier]
+            if run and admission_guard.locked():
+                return await self.reject(scope, receive, send, "Conversation is busy; retry when the current operation finishes", 409)
+            await admission_guard.acquire()
+            admitted = False
+
+            async def admission_send(event):
+                nonlocal admitted
+                if event["type"] == "http.response.start" and not admitted:
+                    admitted = True
+                    admission_guard.release()
+                    if run and event["status"] < 400:
+                        chat_service.synchronize_after_run(identifier)
+                await send(event)
+
+            try:
+                store = await asyncio.to_thread(chat_service.catalog)
+                row = await asyncio.to_thread(store.get, identifier)
+                if row and row["lifecycle"] != "live":
+                    return await self.reject(scope, receive, admission_send, "Conversation permanently deleted")
+                try:
+                    await self.app(scope, replacement_receive, admission_send)
+                finally:
+                    try:
+                        await chat_service.sync(identifier)
+                    except Exception as exc:
+                        log_failure("Chat catalog synchronization", exc)
+            finally:
+                if not admitted:
+                    admission_guard.release()
+        else:
+            await self.app(scope, replacement_receive, send)
 
 
-app = Starlette(middleware=[Middleware(ExecutionBoundary)])
+@asynccontextmanager
+async def lifespan(app):
+    store = await asyncio.to_thread(chat_service.catalog)
+    await chat_service.reconcile(store)
+    yield
+    for task in list(chat_service.sync_tasks):
+        task.cancel()
+    if chat_service.sync_tasks:
+        await asyncio.gather(*chat_service.sync_tasks, return_exceptions=True)
+
+
+app = Starlette(middleware=[Middleware(ExecutionBoundary)], lifespan=lifespan)
 
 
 class SchemaModel(BaseChatModel):
@@ -218,6 +346,11 @@ async def graph(config: RunnableConfig, runtime: ServerRuntime):
     if executing:
         if not thread:
             raise ValueError("A server thread is required")
+        store = await asyncio.to_thread(chat_service.catalog)
+        row = await asyncio.to_thread(store.get, str(thread))
+        if row and row["lifecycle"] != "live":
+            raise ValueError("Conversation permanently deleted")
+        await asyncio.to_thread(store.set_model, str(thread), getattr(settings, "chat_model", None))
         await asyncio.to_thread(execution.begin, str(thread), config.get("configurable", {}).get("run_id"))
 
     completed = False

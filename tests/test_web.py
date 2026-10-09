@@ -63,6 +63,38 @@ class WebBoundaryTests(unittest.TestCase):
 
 @unittest.skipUnless(AVAILABLE, "Install the web extra")
 class WebLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_delete_failure_scrubs_index_and_retry_recovers(self):
+        from unittest.mock import AsyncMock
+        from assistant import chat_service
+        from assistant.chat_catalog import ChatCatalog
+        from starlette.exceptions import HTTPException
+        identifier = "b3495e21-5fb1-4997-8ee3-35c2b90e2315"
+        with tempfile.TemporaryDirectory() as directory:
+            store = ChatCatalog(Path(directory) / "catalog.sqlite3")
+            thread = {"thread_id": identifier, "created_at": "2026-10-09T00:00:00+00:00",
+                      "updated_at": "2026-10-09T00:00:00+00:00", "status": "error",
+                      "values": {"messages": [{"type": "human", "content": "failed history"}]}}
+            store.sync(thread)
+            with patch.object(chat_service, "catalog", return_value=store), \
+                 patch.object(chat_service, "get_thread", AsyncMock(return_value=thread)), \
+                 patch.object(chat_service, "active", AsyncMock(return_value=False)), \
+                 patch.object(chat_service, "remove", AsyncMock(side_effect=RuntimeError("native delete failed"))):
+                with self.assertRaises(HTTPException) as error:
+                    await chat_service.operation(f"/chat/{identifier}/delete", "POST", {}, {})
+                self.assertEqual(error.exception.status_code, 503)
+                self.assertIn("Retry", error.exception.detail)
+                self.assertEqual(store.get(identifier)["lifecycle"], "pending")
+                self.assertEqual(store.search("failed history")["threads"], [])
+                with self.assertRaises(HTTPException) as error:
+                    await chat_service.operation(f"/chat/{identifier}/export", "GET", {}, None)
+                self.assertEqual(error.exception.status_code, 410)
+            async def finish(identifier, catalog):
+                catalog.lifecycle(identifier, "deleted")
+            with patch.object(chat_service, "catalog", return_value=store), \
+                 patch.object(chat_service, "remove", finish):
+                self.assertEqual(await chat_service.operation(f"/chat/{identifier}/delete", "POST", {}, {}), {"deleted": True})
+                self.assertEqual(store.get(identifier)["lifecycle"], "deleted")
+
     async def test_internal_planning_and_synthesis_are_hidden_from_message_stream(self):
         import json
         from langchain_core.messages import AIMessage
