@@ -28,6 +28,12 @@ Example combined question: "Which team handles VPN access, and what does the acc
 7. [Verify requirements and prepare the demo](step-07/plan-step.md)
 8. [Connect LangChain Agent Chat UI](step-08/plan-step.md) (implemented and locally verified)
 9. [Add dark mode](step-09/plan-step.md) (implemented and locally verified)
+10. [Add providers with free tiers and model selection](step-10/plan-step.md) (planned; providers before selector)
+11. [Add chat renaming, search, export, and deletion](step-11/plan-step.md) (planned)
+
+Steps 9-11 extend the existing browser UI. Step 9 is independent; step 10 adds
+provider support before model selection; step 11 shares thread settings with
+step 10 and preserves the separate action-execution ledger during deletion.
 
 Steps 3 and 4 both depend on step 2's data contracts; step 5 joins them. Keep actions outside the informational pipeline. Model-selected tool calls determine intent; do not implement keyword or manually classified intent routing. Ordinary input validation and protocol dispatch do not replace model intent selection.
 

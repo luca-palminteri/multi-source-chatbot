@@ -30,7 +30,6 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { GitHubSVG } from "../icons/github";
 import {
   Tooltip,
   TooltipContent,
@@ -87,37 +86,17 @@ function ScrollToBottom(props: { className?: string }) {
   );
 }
 
-function OpenGitHubRepo() {
+function HeaderActions({
+  onNewThread,
+  chatActions,
+}: {
+  onNewThread: () => void;
+  chatActions?: ReactNode;
+}) {
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <a
-            href="https://github.com/langchain-ai/agent-chat-ui"
-            target="_blank"
-            className="flex items-center justify-center"
-          >
-            <GitHubSVG
-              width="24"
-              height="24"
-            />
-          </a>
-        </TooltipTrigger>
-        <TooltipContent side="left">
-          <p>Open GitHub repo</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
-function HeaderActions({ onNewThread }: { onNewThread: () => void }) {
-  return (
-    <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+    <div className="flex shrink-0 items-center gap-2">
+      {chatActions}
       <AppearanceControl />
-      <div className="hidden items-center sm:flex">
-        <OpenGitHubRepo />
-      </div>
       <TooltipIconButton
         className="size-10 p-2"
         tooltip="New thread"
@@ -438,16 +417,19 @@ export function Thread() {
                 <ConnectedHost apiUrl={stream.apiUrl} />
               </div>
 
-              <div className="flex items-center">
-                {threadId && (
-                  <ChatActions
-                    id={threadId}
-                    title={chatTitle}
-                    busy={isLoading}
-                  />
-                )}
-                <HeaderActions onNewThread={() => setThreadId(null)} />
-              </div>
+              <HeaderActions
+                onNewThread={() => setThreadId(null)}
+                chatActions={
+                  threadId && (
+                    <ChatActions
+                      id={threadId}
+                      title={chatTitle}
+                      busy={isLoading}
+                      className="size-10 p-2"
+                    />
+                  )
+                }
+              />
 
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
             </div>

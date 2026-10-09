@@ -13,10 +13,12 @@ export function ChatActions({
   id,
   title,
   busy = false,
+  className,
 }: {
   id: string;
   title: string;
   busy?: boolean;
+  className?: string;
 }) {
   const { request, refresh, setThreads } = useThreads();
   const stream = useStreamContext();
@@ -123,6 +125,7 @@ export function ChatActions({
       <Button
         variant="ghost"
         size="icon"
+        className={className}
         aria-label={`Actions for ${title}`}
         aria-haspopup="menu"
         aria-expanded={menu}

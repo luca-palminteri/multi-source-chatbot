@@ -25,6 +25,9 @@ status colors. Sonner inherits the provider's theme. Code blocks retain the
 upstream dark Prism palette in both appearances; their copy hover stays readable.
 No backend or message-submission behavior changes.
 
+Local header patch: removed the GitHub icon/link to the upstream Agent Chat UI
+repository from the shared chat header actions.
+
 Local chat actions patch (step 11): Thread.tsx uses the application's paginated
 catalog endpoints. History has debounced literal search, snippets, loading/error/
 empty states, and Load more. chat-actions.tsx supplies keyboard/mobile menus,
