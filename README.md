@@ -76,11 +76,13 @@ and [data/action contracts](docs/contracts.md) for details.
 
 ## Quick start
 
-Use Docker Desktop with Linux containers. From the repository root, copy the
-example environment for a fresh checkout:
+Use Docker Desktop with Linux containers on Windows/macOS, or Docker Engine
+with the Compose plugin on Linux. Run commands from the repository root.
+
+### Windows (PowerShell)
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item .env.example .env  # only for a fresh checkout
 ```
 
 Set `GOOGLE_API_KEY` in `.env` using your key from
@@ -91,6 +93,21 @@ $env:CHATBOT_IMAGE = "ghcr.io/luca-palminteri/multi-source-chatbot:latest"
 docker compose up -d --pull always --no-build
 ```
 
+### Linux / macOS (Bash or Zsh)
+
+```bash
+cp .env.example .env  # only for a fresh checkout
+```
+
+Set `GOOGLE_API_KEY` in `.env`, then start the prebuilt image:
+
+```bash
+export CHATBOT_IMAGE="ghcr.io/luca-palminteri/multi-source-chatbot:latest"
+docker compose up -d --pull always --no-build
+```
+
+### Open and manage the app (all platforms)
+
 | Service | Address |
 | --- | --- |
 | Browser chat | <http://localhost:3000> |
@@ -100,7 +117,7 @@ Startup seeds the database and builds or reuses the document index. Initial
 indexing calls the embedding provider; existing records are preserved, and named
 volumes retain data and history across container replacement.
 
-```powershell
+```sh
 docker compose logs -f chatbot
 docker compose down  # stop while retaining data
 ```
@@ -115,7 +132,9 @@ Want to run the services directly? Follow [browser setup](docs/web-chat.md).
 ## Terminal setup
 
 The terminal application supports Python 3.10+; the browser server requires
-Python 3.12+. The commands below use standard Windows Python 3.12.
+Python 3.12+. These examples install the locked runtime with Python 3.12.
+
+### Windows (PowerShell)
 
 ```powershell
 python -m pip install uv==0.12.23
@@ -131,24 +150,55 @@ Configure `GOOGLE_API_KEY` in `.env`, then seed, ingest, and start chat:
 uv run --locked --extra runtime python -m assistant.cli chat
 ```
 
+If an existing `.venv` uses MSYS Python, set
+`$env:UV_PROJECT_ENVIRONMENT = ".venv-win"` before syncing and use `.venv-win`
+in executable paths. MSYS executable paths use `.venv\bin\python.exe`.
+
+### Linux / macOS (Bash or Zsh)
+
+Install the pinned uv version using its
+[standalone installer](https://docs.astral.sh/uv/getting-started/installation/)
+(skip installation if uv 0.12.23 is already available):
+
+```bash
+curl -LsSf https://astral.sh/uv/0.12.23/install.sh | sh
+```
+
+Restart your terminal if needed so `uv` is on your `PATH`, then run from the
+repository root:
+
+```bash
+uv sync --locked --extra runtime --python 3.12
+cp .env.example .env  # only for a fresh checkout
+```
+
+Configure `GOOGLE_API_KEY` in `.env`, then seed, ingest, and start chat:
+
+```bash
+.venv/bin/python -m assistant.cli seed
+.venv/bin/python -m assistant.cli ingest
+uv run --locked --extra runtime python -m assistant.cli chat
+```
+
+### Chat and retrieval (all platforms)
+
 Chat launches its MCP server automatically. Use `/new` for a fresh conversation
 and `/exit` to quit. Run from the project root, or pass `--root <project-directory>`
 before a CLI subcommand. The installed `assistant` command exposes the same commands.
 
-If an existing `.venv` uses MSYS Python, set
-`$env:UV_PROJECT_ENVIRONMENT = ".venv-win"` before syncing and use `.venv-win`
-in executable paths. MSYS executable paths use `.venv\bin\python.exe`.
 Seeding and graph retrieval do not require credentials; ingestion, document
 search, and chat do. Rerun ingestion after changing embedding providers or models.
 
 <details>
 <summary><strong>Explore retrieval from the CLI</strong></summary>
 
-```powershell
-.venv\Scripts\python -m assistant.cli graph emp-001 --step MEMBER_OF:out --step OWNS:out
-.venv\Scripts\python -m assistant.cli graph svc-vpn --step OWNS:in
-.venv\Scripts\python -m assistant.cli search "What does VPN access require?"
-.venv\Scripts\python -m assistant.cli ask "Which team handles VPN access, and what does the access policy require?" --trace
+These commands use `uv run` and work in PowerShell, Bash, and Zsh:
+
+```sh
+uv run --locked --extra runtime python -m assistant.cli graph emp-001 --step MEMBER_OF:out --step OWNS:out
+uv run --locked --extra runtime python -m assistant.cli graph svc-vpn --step OWNS:in
+uv run --locked --extra runtime python -m assistant.cli search "What does VPN access require?"
+uv run --locked --extra runtime python -m assistant.cli ask "Which team handles VPN access, and what does the access policy require?" --trace
 ```
 
 See [terminal chat](docs/chat.md) for the complete startup sequence.
@@ -159,13 +209,21 @@ See [terminal chat](docs/chat.md) for the complete startup sequence.
 
 Validate the synthetic dataset without credentials or dependencies (Python 3.10+):
 
+**Windows (PowerShell):**
+
 ```powershell
 python scripts/validate_demo.py
 ```
 
-After installing the runtime dependencies:
+**Linux / macOS (Bash or Zsh):**
 
-```powershell
+```bash
+python3 scripts/validate_demo.py
+```
+
+After installing the runtime dependencies, these commands work on all platforms:
+
+```sh
 uv run --locked --extra runtime python -m unittest discover -s tests -v
 uv run --locked --extra runtime python scripts/check_mcp.py
 ```
@@ -176,9 +234,9 @@ Agent Server checks, and build the pinned UI. After these pass, the container jo
 builds both Linux architectures and publishes to GHCR from the default branch
 and `v*` version tags.
 
-Live Gemini evaluation is an explicit local command:
+Live Gemini evaluation is an explicit local command (all platforms):
 
-```powershell
+```sh
 uv run --locked --extra runtime python scripts/evaluate_demo.py
 ```
 

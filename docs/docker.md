@@ -5,15 +5,28 @@ UI on port 3000. Compose exposes the backend on host port 20240 to avoid common
 Windows/WSL port reservations. Both use the existing agent; MCP actions still launch as stdio
 subprocesses. The terminal CLI is available in the same image.
 
-Use Docker Desktop with Linux containers. Run these commands from the repository
-root. For a fresh checkout, copy `.env.example` to `.env` and set `GOOGLE_API_KEY`.
+Use Docker Desktop with Linux containers on Windows/macOS, or Docker Engine
+with the Compose plugin on Linux. Run these commands from the repository root.
+For a fresh checkout, copy `.env.example` to `.env` and set `GOOGLE_API_KEY`.
 An existing `.env` can be reused; Compose overrides database/index paths to use
 the container's persistent runtime volume. Credentials are supplied at runtime
 and excluded from the image build.
 
+**Windows (PowerShell):**
+
 ```powershell
 # Fresh checkout only:
 Copy-Item .env.example .env
+# Set GOOGLE_API_KEY in .env before startup.
+docker compose build
+docker compose up -d
+```
+
+**Linux / macOS (Bash or Zsh):**
+
+```bash
+# Fresh checkout only:
+cp .env.example .env
 # Set GOOGLE_API_KEY in .env before startup.
 docker compose build
 docker compose up -d
@@ -33,7 +46,9 @@ Open <http://localhost:3000>. Check the backend at <http://localhost:20240/ok>.
 The ports are bound to the local host. The browser connects directly to port
 20240; `localhost` is resolved by the browser, not inside the container.
 
-```powershell
+The following container commands work on all platforms:
+
+```sh
 docker compose ps
 docker compose logs -f chatbot
 # Start a separate interactive terminal conversation with the same data:
@@ -85,8 +100,17 @@ token with `read:packages` and access to the package, as described in
 
 With `.env` configured as above, run from the repository root:
 
+**Windows (PowerShell):**
+
 ```powershell
 $env:CHATBOT_IMAGE = "ghcr.io/luca-palminteri/multi-source-chatbot:latest"
+docker compose up -d --pull always --no-build
+```
+
+**Linux / macOS (Bash or Zsh):**
+
+```bash
+export CHATBOT_IMAGE="ghcr.io/luca-palminteri/multi-source-chatbot:latest"
 docker compose up -d --pull always --no-build
 ```
 
@@ -101,5 +125,17 @@ in `.env` instead of setting a shell variable.
 It uses `http://localhost:20240` as the browser-visible API URL. Keep the default
 host ports for this image; changing `.env` cannot change its compiled UI URL.
 For a custom browser-visible URL, use the local build instructions above and
-clear `CHATBOT_IMAGE` first: remove it from `.env` if present and run
-`Remove-Item Env:CHATBOT_IMAGE -ErrorAction SilentlyContinue` in PowerShell.
+clear `CHATBOT_IMAGE` first: remove it from `.env` if present and clear the shell
+variable with the command for your platform.
+
+**Windows (PowerShell):**
+
+```powershell
+Remove-Item Env:CHATBOT_IMAGE -ErrorAction SilentlyContinue
+```
+
+**Linux / macOS (Bash or Zsh):**
+
+```bash
+unset CHATBOT_IMAGE
+```

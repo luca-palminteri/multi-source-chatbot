@@ -7,18 +7,42 @@ fixtures, not recorded model output. No provider calls or database writes occur.
 
 ## Recreate
 
-Install the pinned UI dependencies as described in [browser setup](../web-chat.md).
-From the repository root, build the current UI into an isolated directory:
+Use Node.js 22+ and run from the repository root. Install the pinned UI dependencies,
+then build the current UI into an isolated directory.
+
+### Windows (PowerShell)
 
 ```powershell
 $env:WEB_CHECK_DIST_DIR = ".next-readme"
 $env:NEXT_PUBLIC_API_URL = "http://localhost:2024"
 $env:NEXT_PUBLIC_ASSISTANT_ID = "assistant"
 Push-Location ui/agent-chat-ui
+npm.cmd exec --yes --package=pnpm@10.5.1 -- pnpm install --frozen-lockfile
 node node_modules/next/dist/bin/next build
 Pop-Location
 node scripts/capture_readme.cjs
 ```
+
+### Linux / macOS (Bash or Zsh)
+
+```bash
+export WEB_CHECK_DIST_DIR=".next-readme"
+export NEXT_PUBLIC_API_URL="http://localhost:2024"
+export NEXT_PUBLIC_ASSISTANT_ID="assistant"
+(
+  cd ui/agent-chat-ui
+  npm exec --yes --package=pnpm@10.5.1 -- pnpm install --frozen-lockfile
+  node node_modules/next/dist/bin/next build
+  node node_modules/@playwright/test/cli.js install chromium
+)
+node scripts/capture_readme.cjs
+```
+
+The subshell keeps your terminal in the repository root. On Linux, Playwright
+may also require system libraries; use its `install --with-deps chromium` command
+if needed.
+
+### Capture behavior (all platforms)
 
 The build fetches the app's Google font. The capture script starts a temporary
 UI server on an available local port, intercepts backend requests with fixtures,
